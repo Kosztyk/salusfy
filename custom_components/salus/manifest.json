@@ -1,7 +1,7 @@
 {
   "domain": "salus",
   "name": "Salus thermostat",
-  "version": "0.0.15",
+  "version": "1.0.0",
   "documentation": "https://github.com/kosztyk/salusfy",
   "issue_tracker": "https://github.com/kosztyk/salusfy/issues",
   "requirements": [],

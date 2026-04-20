@@ -1,13 +1,20 @@
 import logging
 
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.components.binary_sensor import BinarySensorEntity
 
 from . import DOMAIN
+from .climate import DEFAULT_NAME
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_climate_entity_id(hass: HomeAssistant, name: str) -> str:
+    entity_id = er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"{name}_climate")
+    return entity_id or "climate.salus_thermostat"
 
 
 async def async_setup_entry(
@@ -16,7 +23,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ):
     """Set up binary_sensor entities for the Salus integration from a config entry."""
-    climate_entity_id = "climate.salus_thermostat"
+    config_data = hass.data[DOMAIN][entry.entry_id]
+    climate_name = config_data.get("name", DEFAULT_NAME)
+    climate_entity_id = _resolve_climate_entity_id(hass, climate_name)
     async_add_entities([SalusCh1HeatOnOffBinarySensor(climate_entity_id)], update_before_add=True)
 
 
@@ -37,7 +46,7 @@ class SalusCh1HeatOnOffBinarySensor(BinarySensorEntity):
             return
 
         climate_state = self.hass.states.get(self._climate_entity_id)
-        if not climate_state:
+        if not climate_state or climate_state.state in ("unavailable", "unknown"):
             self._attr_is_on = None
             self._attr_available = False
             return

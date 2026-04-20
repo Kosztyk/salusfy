@@ -18,7 +18,7 @@ from . import DOMAIN
 # Decrease poll interval to 15 seconds:
 SCAN_INTERVAL = timedelta(seconds=15)
 
-_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,

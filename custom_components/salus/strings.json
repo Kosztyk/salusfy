@@ -1,0 +1,63 @@
+{
+  "title": "Salus thermostat",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect your SALUS iT500 account",
+        "description": "Use the email and password from the iT500 Plus app. Leave Device ID empty to discover your thermostat.",
+        "data": {
+          "username": "Email",
+          "password": "Password",
+          "id": "Device ID or STA number (optional)"
+        }
+      },
+      "device": {
+        "title": "Choose your thermostat",
+        "data": {
+          "id": "Thermostat"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to SALUS",
+        "description": "Enter your iT500 Plus app credentials again.",
+        "data": {
+          "username": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "SALUS rejected the email or password. Use the credentials that work in the iT500 Plus app.",
+      "cannot_connect": "Could not connect to the SALUS mobile service. Try again later.",
+      "invalid_device": "The selected iT500 was not found on this account. Check the Device ID or leave it empty to discover devices."
+    },
+    "abort": {
+      "already_configured": "This thermostat is already configured.",
+      "reauth_successful": "SALUS authentication was updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "SALUS account and thermostat",
+        "description": "Use your iT500 Plus app credentials. Leave Device ID empty to discover devices.",
+        "data": {
+          "username": "Email",
+          "password": "Password",
+          "id": "Device ID or STA number (optional)"
+        }
+      },
+      "device": {
+        "title": "Choose your thermostat",
+        "data": {
+          "id": "Thermostat"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "SALUS rejected the email or password.",
+      "cannot_connect": "Could not connect to the SALUS mobile service. Try again later.",
+      "invalid_device": "The selected iT500 was not found on this account. Check the ID or leave it empty to discover devices."
+    }
+  }
+}

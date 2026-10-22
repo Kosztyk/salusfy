@@ -1,35 +1,41 @@
 # Salus Thermostat (Salusfy)
 
-Unofficial Home Assistant integration for compatible Salus iT500 / RT301i devices using https://salus-it500.com. It provides a thermostat (climate entity), heating status, temperature and history sensors. Connection to the Salus service is required.
+Unofficial Home Assistant integration for **SALUS iT500, heating zone 1**, using the same cloud authentication and API as **iT500 Plus**. It provides the existing thermostat, heating output, temperature and heating-history entities.
 
-## HACS installation
+Version **1.2.0** connects directly to the mobile service. The `salus-it500.com` web portal is no longer required for login, device discovery, readings or commands. Internet access to the SALUS service is still required.
 
-Until this repository is accepted into the default HACS catalog, open **HACS → Custom repositories**, enter `https://github.com/Kosztyk/salusfy`, choose **Integration**, install **Salus thermostat**, and restart Home Assistant.
+Requires Home Assistant 2025.8 or later.
 
-After inclusion in the default HACS catalog, the repository can be found through HACS search.
+## Update an existing installation
 
-## Manual installation
+Update **Salus thermostat** in HACS and restart Home Assistant. The existing integration entry, saved credentials and entity unique IDs are reused; retain your current entry.
 
-Copy the complete **`custom_components/salus`** directory to `/config/custom_components/salus/`, and restart Home Assistant. The integration's Home Assistant domain is **`salus`**, not `salusfy`.
+If Home Assistant requests authentication, enter the same email and password that work in iT500 Plus. Credentials and thermostat selection can also be changed under **Settings → Devices & services → Salus thermostat → Configure**.
 
-## Configure in the Home Assistant UI
+## Installation
 
-Open **Settings → Devices & services → Add integration**, search for **Salus thermostat**, and enter the Salus service email, password and device ID. You can later change these using the integration's Configure/options flow.
+In **HACS → Custom repositories**, add `https://github.com/Kosztyk/salusfy` with category **Integration**, download **Salus thermostat**, and restart Home Assistant. Once this repository is accepted into the default HACS catalog, it can also be found through HACS search.
 
-### Find your device ID
+For manual installation, copy the complete **`custom_components/salus`** directory to `/config/custom_components/salus/` and restart. The Home Assistant domain remains **`salus`**.
 
-1. Sign in to https://salus-it500.com using your Salus credentials.
-2. Select your device.
-3. Copy the device ID from the device page URL.
+Open **Settings → Devices & services → Add integration → Salus thermostat**. Enter the iT500 Plus account email and password. Leave Device ID empty to discover the account's iT500 devices; choose a thermostat if there is more than one. Existing numeric device IDs and matching STA numbers are accepted without using the website.
 
-**Note:** Earlier documentation included a `climate: - platform: salusfy` YAML configuration and a `salusfy` folder. Those instructions are obsolete for this version: use the UI configuration flow and the `salus` directory.
+## Behavior
 
-## Known limitations
+- **Heat** selects manual operation, **Auto** follows the thermostat's schedule, and **Off** selects the thermostat's off mode.
+- Temperature changes and mode changes use the mobile API, check the server acknowledgement, and wait briefly for a fresh matching attribute report. If confirmation does not arrive, Home Assistant reports that the command is pending rather than declaring success.
+- Heating output comes from the reported **relay status**, independently of the difference between room temperature and setpoint.
+- Thermostat, temperature and output entities share a cloud poll every 60 seconds. Ordinary polling does not wake the battery-powered thermostat; control commands request a brief refresh.
+- Expired security tokens are renewed automatically. Network requests have timeouts and limited retries. Missing numeric readings are unavailable instead of text values or invented zeros.
 
-The Salus service may rate-limit or block repeated requests from an IP address. Do not configure excessive polling.
+## Scope and limitations
 
-Some sensor entity IDs in this integration assume the default `climate.salus_thermostat` name. Renaming the climate entity can affect these derived sensors. The included CI checks verify packaging and metadata; they do not connect to the live Salus cloud or exercise a thermostat.
+This version exposes the original single heating zone. A second heating zone, hot water and other SALUS product families are not implemented or validated by this integration.
+
+The cloud can retain old readings while the battery thermostat sleeps. `last_report_ms` on the climate entity shows the reported timestamp. Existing heating-history sensors remain approximate calculations from HA observations; they are not boiler energy meters.
+
+Offline protocol and migration tests cannot establish whether authentication and controls work with every account or thermostat firmware. Verify the installed update with your own system. Tests never require account credentials.
 
 ## Validation and license
 
-See [VALIDATION.md](VALIDATION.md) for CI scope. Licensed under [MIT](LICENSE.txt); the [original Romanian translation](docs/licenta-originala-ro.md) is retained.
+See [VALIDATION.md](VALIDATION.md) for test coverage and commands. Licensed under [MIT](LICENSE.txt); the [original Romanian translation](docs/licenta-originala-ro.md) is retained. The mobile client is adapted from [ZaBug/salus-it500](https://github.com/ZaBug/salus-it500), with its [MIT license notice](custom_components/salus/third_party/ZaBug-LICENSE.txt) included.

@@ -1,6 +1,6 @@
 Licență MIT
 
-Copyright (c) 2024 [cnecrea]
+Copyright (c) 2024 [kosztyk]
 
 Prin prezenta se acordă permisiunea, gratuit, oricărei persoane care intră în posesia 
 unei copii a acestui software și a fișierelor de documentație asociate (denumite în 

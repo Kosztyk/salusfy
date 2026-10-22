@@ -15,5 +15,5 @@ class TestPackaging(unittest.TestCase):
         import json
         manifest=json.loads((ROOT/"custom_components/salus/manifest.json").read_text())
         self.assertEqual(manifest["domain"],"salus")
-        self.assertEqual(manifest["version"],"1.2.0")
+        self.assertEqual(manifest["version"],"1.2.1")
 if __name__=="__main__":unittest.main()

@@ -20,12 +20,6 @@ def _merged_entry_config(entry: ConfigEntry) -> dict:
     return {**dict(entry.data), **dict(entry.options)}
 
 
-async def _async_entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options updates by reloading the entry."""
-    hass.data.setdefault(DOMAIN, {})
-    await hass.config_entries.async_reload(entry.entry_id)
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Salus integration from a config entry."""
     hass.data.setdefault(DOMAIN, {})
@@ -42,8 +36,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = SalusCoordinator(hass, entry, client, device.device_id)
     await coordinator.async_config_entry_first_refresh()
     hass.data[DOMAIN][entry.entry_id] = {**config, "coordinator": coordinator}
-
-    entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

@@ -112,10 +112,15 @@ class Flow:
         return self.reauth_entry
 
     # Match the real HA helper signature: unknown options_updates must fail.
-    def async_update_and_abort(self, entry, *, data_updates, options):
+    def async_update_reload_and_abort(self, entry, *, data_updates, options):
         entry.data = {**entry.data, **data_updates}
         entry.options = options
+        self.reload_requested = True
         return self.async_abort(reason="reauth_successful")
+
+
+class OptionsFlowWithReload(Flow):
+    automatic_reload = True
 
 
 @contextmanager
@@ -134,7 +139,7 @@ def interfaces():
             setattr(modules[parent], child, result)
         return result
 
-    module("homeassistant.config_entries", ConfigEntry=object, ConfigFlow=Flow, OptionsFlow=Flow)
+    module("homeassistant.config_entries", ConfigEntry=object, ConfigFlow=Flow, OptionsFlow=Flow, OptionsFlowWithReload=OptionsFlowWithReload)
     module("homeassistant.core", HomeAssistant=object, callback=lambda f: f)
     module("homeassistant.exceptions", ConfigEntryAuthFailed=AuthFailed, ConfigEntryNotReady=NotReady, HomeAssistantError=HAError)
     module("homeassistant.const", CONF_ID="id", CONF_USERNAME="username", CONF_PASSWORD="password", ATTR_TEMPERATURE="temperature", UnitOfTemperature=SimpleNamespace(CELSIUS="°C"), STATE_UNAVAILABLE="unavailable", STATE_UNKNOWN="unknown")

@@ -177,3 +177,15 @@ class TestFlows(unittest.IsolatedAsyncioTestCase):
             result = await self.flow.async_step_reauth_confirm(self.credentials)
         self.assertEqual(result["errors"], {"base": "invalid_device"})
         self.assertEqual(self.flow.reauth_entry.data["password"], "old")
+
+    async def test_reauth_after_failed_setup_explicitly_requests_reload(self):
+        # Failed initial authentication never installed an update listener.
+        self.flow.reauth_entry = SimpleNamespace(data={"id": "1234"}, options={})
+        with patch.object(flow_module, "_fetch_devices", new=AsyncMock(return_value=[self.device])):
+            await self.flow.async_step_reauth_confirm(self.credentials)
+        self.assertTrue(self.flow.reload_requested)
+
+    async def test_options_save_uses_home_assistants_automatic_reload(self):
+        entry = SimpleNamespace(data={"id": "1234"}, options={})
+        options = flow_module.SalusOptionsFlowHandler(entry)
+        self.assertTrue(options.automatic_reload)

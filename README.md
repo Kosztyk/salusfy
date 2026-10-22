@@ -2,7 +2,7 @@
 
 Unofficial Home Assistant integration for **SALUS iT500, heating zone 1**, using the same cloud authentication and API as **iT500 Plus**. It provides the existing thermostat, heating output, temperature and heating-history entities.
 
-Version **1.2.0** connects directly to the mobile service. The `salus-it500.com` web portal is no longer required for login, device discovery, readings or commands. Internet access to the SALUS service is still required.
+Version **1.2.1** connects directly to the mobile service. The `salus-it500.com` web portal is no longer required for login, device discovery, readings or commands. Internet access to the SALUS service is still required.
 
 Requires Home Assistant 2025.8 or later.
 

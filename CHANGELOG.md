@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.1 — Authentication recovery
+- Reload explicitly after reauthentication following a failed initial setup.
+- Use native automatic reload for saved options without requiring a loaded integration listener.
+- Add tests for both recovery paths.
+
 ## v1.2.0 — iT500 mobile API
 - Replace website scraping with app authentication, token renewal and mobile API reads/writes.
 - Discover devices from the account without a working web portal; retain saved configuration and existing entity unique IDs.

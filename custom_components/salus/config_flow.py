@@ -117,7 +117,7 @@ class SalusConfigFlow(DeviceFlowMixin, config_entries.ConfigFlow, domain=DOMAIN)
                 errors["base"] = "cannot_connect"
             else:
                 # Both data and options may hold credentials in older installations.
-                return self.async_update_and_abort(
+                return self.async_update_reload_and_abort(
                     entry,
                     data_updates=credentials,
                     options={**entry.options, **credentials},
@@ -131,7 +131,7 @@ class SalusConfigFlow(DeviceFlowMixin, config_entries.ConfigFlow, domain=DOMAIN)
         return self.async_show_form(step_id="reauth_confirm", data_schema=schema, errors=errors)
 
 
-class SalusOptionsFlowHandler(DeviceFlowMixin, config_entries.OptionsFlow):
+class SalusOptionsFlowHandler(DeviceFlowMixin, config_entries.OptionsFlowWithReload):
     """Keep the original Configure flow and validate changes before saving."""
 
     def __init__(self, config_entry):

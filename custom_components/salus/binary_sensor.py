@@ -1,36 +1,69 @@
-"""Heating output directly from the SALUS relay attribute."""
+import logging
 
 from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DEFAULT_NAME, DOMAIN
-from .entity import climate_entity_id, legacy_unique_id
+from . import DOMAIN
+from .climate import DEFAULT_NAME
 
-
-async def async_setup_entry(hass, entry, async_add_entities):
-    config = hass.data[DOMAIN][entry.entry_id]
-    entity_id = climate_entity_id(hass, config.get("name", DEFAULT_NAME))
-    unique_id = legacy_unique_id(
-        hass, entry, "binary_sensor", "_ch1_heat_on_off_status", f"{entity_id}_ch1_heat_on_off_status"
-    )
-    async_add_entities([SalusCh1HeatOnOffBinarySensor(config["coordinator"], unique_id)])
+_LOGGER = logging.getLogger(__name__)
 
 
-class SalusCh1HeatOnOffBinarySensor(CoordinatorEntity, BinarySensorEntity):
-    """Expose the actual relay, including unavailable when the flag is missing."""
+def _resolve_climate_entity_id(hass: HomeAssistant, name: str) -> str:
+    entity_id = er.async_get(hass).async_get_entity_id("climate", DOMAIN, f"{name}_climate")
+    return entity_id or "climate.salus_thermostat"
 
-    _attr_name = "Salus Heating Output"
-    _attr_icon = "mdi:radiator"
 
-    def __init__(self, coordinator, unique_id):
-        super().__init__(coordinator)
-        self._attr_unique_id = unique_id
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+):
+    """Set up binary_sensor entities for the Salus integration from a config entry."""
+    config_data = hass.data[DOMAIN][entry.entry_id]
+    climate_name = config_data.get("name", DEFAULT_NAME)
+    climate_entity_id = _resolve_climate_entity_id(hass, climate_name)
+    async_add_entities([SalusCh1HeatOnOffBinarySensor(climate_entity_id)], update_before_add=True)
 
-    @property
-    def available(self):
-        state = self.coordinator.data
-        return super().available and state is not None and state.online is not False and state.heating is not None
 
-    @property
-    def is_on(self):
-        return self.coordinator.data.heating
+class SalusCh1HeatOnOffBinarySensor(BinarySensorEntity):
+    """Binary sensor reflecting the gateway heating output (CH1heatOnOffStatus)."""
+
+    def __init__(self, climate_entity_id: str) -> None:
+        self._climate_entity_id = climate_entity_id
+        self._attr_name = "Salus Heating Output"
+        self._attr_unique_id = f"{climate_entity_id}_ch1_heat_on_off_status"
+        self._attr_icon = "mdi:radiator"
+
+        self._attr_is_on = None
+        self._attr_available = False
+
+    async def async_update(self) -> None:
+        if not self.hass:
+            return
+
+        climate_state = self.hass.states.get(self._climate_entity_id)
+        if not climate_state or climate_state.state in ("unavailable", "unknown"):
+            self._attr_is_on = None
+            self._attr_available = False
+            return
+
+        attrs = climate_state.attributes or {}
+
+        is_heating = attrs.get("is_heating")
+        if isinstance(is_heating, bool):
+            self._attr_is_on = is_heating
+            self._attr_available = True
+            return
+
+        raw = attrs.get("ch1_heat_on_off_status_raw")
+        if raw is None:
+            self._attr_is_on = None
+            self._attr_available = False
+            return
+
+        self._attr_is_on = str(raw) == "1"
+        self._attr_available = True

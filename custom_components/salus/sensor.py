@@ -1,6 +1,6 @@
-import logging
 import datetime
 from datetime import timedelta
+import math
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -13,9 +13,20 @@ from homeassistant.const import (
     STATE_UNKNOWN
 )
 
-from . import DOMAIN
+from .const import DEFAULT_NAME, DOMAIN
+from .entity import climate_entity_id as resolve_climate_entity_id, legacy_unique_id
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-# Decrease poll interval to 15 seconds:
+def _restore_float(value):
+    """Unavailable restored sensors must not prevent integration startup."""
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    return result if math.isfinite(result) else 0.0
+
+
+# Legacy history sensors sample the climate state; the cloud polls separately.
 SCAN_INTERVAL = timedelta(seconds=15)
 
 
@@ -29,8 +40,8 @@ async def async_setup_entry(
     Set up the sensor entities for the Salus integration from a config entry.
     This replicates the behavior of your YAML-based 'history_stats' & template sensors.
     """
-    # We assume your climate entity is called climate.salus_thermostat
-    climate_entity_id = "climate.salus_thermostat"
+    config = hass.data[DOMAIN][entry.entry_id]
+    climate_entity_id = resolve_climate_entity_id(hass, config.get("name", DEFAULT_NAME))
 
     sensors = [
         StareTermostatSensor(climate_entity_id),
@@ -39,9 +50,27 @@ async def async_setup_entry(
         StatisticaCentralaLunaCurentaSensor(climate_entity_id),
         StatisticaCentralaLunaTrecutaSensor(climate_entity_id),
         DurataIncalzireSensor("sensor.thermostat_state"),  # references the sensor above
-        SalusCurrentTempSensor(climate_entity_id)          # <-- Your new temperature sensor
+        SalusCurrentTempSensor(config["coordinator"], f"{climate_entity_id}_current_temperature")
     ]
-    async_add_entities(sensors, update_before_add=True)
+    # Recover existing unique IDs even if the source climate entity was renamed.
+    for sensor in sensors:
+        suffix = sensor._attr_unique_id.split("_", 1)[-1]
+        if isinstance(sensor, SalusCurrentTempSensor):
+            suffix = "_current_temperature"
+        elif isinstance(sensor, StareTermostatSensor):
+            suffix = "_thermostat_state"
+        elif isinstance(sensor, StatisticaCentralaSensor):
+            suffix = "_.heater_history"
+        elif isinstance(sensor, StatisticaCentralaIeriSensor):
+            suffix = "_yesterday_heater_history"
+        elif isinstance(sensor, StatisticaCentralaLunaCurentaSensor):
+            suffix = "_this_month_heater_history"
+        elif isinstance(sensor, StatisticaCentralaLunaTrecutaSensor):
+            suffix = "_last_month_heater_history"
+        elif isinstance(sensor, DurataIncalzireSensor):
+            suffix = "_heating_time"
+        sensor._attr_unique_id = legacy_unique_id(hass, entry, "sensor", suffix, sensor._attr_unique_id)
+    async_add_entities(sensors)
 
 
 class StareTermostatSensor(SensorEntity):
@@ -64,7 +93,7 @@ class StareTermostatSensor(SensorEntity):
 
     def update(self):
         climate_state = self.hass.states.get(self._climate_entity_id)
-        if not climate_state:
+        if not climate_state or climate_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             self._state = STATE_UNAVAILABLE
             return
         # mirror hvac_action
@@ -98,7 +127,7 @@ class StatisticaCentralaSensor(SensorEntity, RestoreEntity):
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         if last_state:
-            self._hours_heating = float(last_state.state)
+            self._hours_heating = _restore_float(last_state.state)
             attributes = last_state.attributes
             if "last_update" in attributes:
                 self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
@@ -119,7 +148,7 @@ class StatisticaCentralaSensor(SensorEntity, RestoreEntity):
     def update(self):
         now = datetime.datetime.now()
         climate_state = self.hass.states.get(self._climate_entity_id)
-        if climate_state:
+        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
         else:
             hvac_action = STATE_UNAVAILABLE
@@ -156,10 +185,10 @@ class StatisticaCentralaIeriSensor(SensorEntity, RestoreEntity):
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         if last_state:
-            self._state = float(last_state.state)
+            self._state = _restore_float(last_state.state)
             attributes = last_state.attributes
             if "today_heating" in attributes:
-                self._today_heating = float(attributes["today_heating"])
+                self._today_heating = _restore_float(attributes["today_heating"])
             if "last_update" in attributes:
                 self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
             if "last_state" in attributes:
@@ -181,7 +210,7 @@ class StatisticaCentralaIeriSensor(SensorEntity, RestoreEntity):
         now = datetime.datetime.now()
         climate_state = self.hass.states.get(self._climate_entity_id)
         hvac_action = STATE_UNKNOWN
-        if climate_state:
+        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
 
         time_diff = (now - self._last_update).total_seconds() / 3600.0
@@ -217,7 +246,7 @@ class StatisticaCentralaLunaCurentaSensor(SensorEntity, RestoreEntity):
         last_state = await self.async_get_last_state()
         if last_state:
             # restore to _monthly_heating
-            self._monthly_heating = float(last_state.state)
+            self._monthly_heating = _restore_float(last_state.state)
             attributes = last_state.attributes
             if "last_update" in attributes:
                 self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
@@ -242,7 +271,7 @@ class StatisticaCentralaLunaCurentaSensor(SensorEntity, RestoreEntity):
         now = datetime.datetime.now()
         climate_state = self.hass.states.get(self._climate_entity_id)
         hvac_action = STATE_UNKNOWN
-        if climate_state:
+        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
 
         time_diff = (now - self._last_update).total_seconds() / 3600.0
@@ -276,10 +305,10 @@ class StatisticaCentralaLunaTrecutaSensor(SensorEntity, RestoreEntity):
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         if last_state:
-            self._state = float(last_state.state)  # restore last month's history
+            self._state = _restore_float(last_state.state)  # restore last month's history
             attributes = last_state.attributes
             if "this_month_heating" in attributes:
-                self._this_month_heating = float(attributes["this_month_heating"])
+                self._this_month_heating = _restore_float(attributes["this_month_heating"])
             if "last_update" in attributes:
                 self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
             if "last_state" in attributes:
@@ -301,7 +330,7 @@ class StatisticaCentralaLunaTrecutaSensor(SensorEntity, RestoreEntity):
         now = datetime.datetime.now()
         climate_state = self.hass.states.get(self._climate_entity_id)
         hvac_action = STATE_UNKNOWN
-        if climate_state:
+        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
             hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
 
         time_diff = (now - self._last_update).total_seconds() / 3600.0
@@ -374,31 +403,24 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 
-class SalusCurrentTempSensor(SensorEntity):
+class SalusCurrentTempSensor(CoordinatorEntity, SensorEntity):
     """Sensor to expose the current temperature from the Salus climate entity."""
 
-    def __init__(self, climate_entity_id: str):
-        self._climate_entity_id = climate_entity_id
+    def __init__(self, coordinator, unique_id: str):
+        super().__init__(coordinator)
         self._attr_name = "Salus Current Temperature"
-        self._attr_unique_id = f"{climate_entity_id}_current_temperature"
+        self._attr_unique_id = unique_id
         # Provide device_class & state_class for improved UI
         self._attr_device_class = SensorDeviceClass.TEMPERATURE
         self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-        self._state = STATE_UNKNOWN
 
     @property
     def native_value(self):
-        """Return the current temperature as a float or Unknown/Unavailable."""
-        return self._state
+        """Numeric values or None; availability is separate from the value."""
+        return self.coordinator.data.current_temperature
 
-    def update(self):
-        """Fetch the current temperature from the Salus climate entity."""
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        if not climate_state:
-            self._state = STATE_UNAVAILABLE
-            return
-
-        # The climate entity's 'current_temperature' attribute is the key
-        temperature = climate_state.attributes.get("current_temperature", STATE_UNKNOWN)
-        self._state = temperature
+    @property
+    def available(self):
+        data = self.coordinator.data
+        return super().available and data is not None and data.online is not False and data.current_temperature is not None

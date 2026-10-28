@@ -16,6 +16,7 @@ ATTRIBUTES = """<getDeviceAttributesWithValuesResponse xmlns="http://arrayent.co
 <attrList><name>A84</name><value>2050</value><updTime>1000</updTime></attrList>
 <attrList><name>A85</name><value>2200</value><updTime>1001</updTime></attrList>
 <attrList><name>A87</name><value>0</value><updTime>1002</updTime></attrList>
+<attrList><name>A88</name><value>0</value><updTime>1003</updTime></attrList>
 <attrList><name>A89</name><value>0</value></attrList>
 <attrList><name>A92</name><value>1</value></attrList>
 <attrList><name>online</name><value>1</value></attrList>
@@ -155,9 +156,9 @@ class TestDeviceAndState(unittest.TestCase):
         with self.assertRaises(api.SalusDeviceError):
             api.select_device(devices, "")
 
-    def test_unrelated_salus_device_is_not_selected(self):
-        with self.assertRaises(api.SalusDeviceError):
-            api.select_device([api.DeviceInfo("2", "other", "2")], "2")
+    def test_other_salus_device_is_discoverable(self):
+        device = api.DeviceInfo("2", "other", "2")
+        self.assertEqual(api.select_device([device], "2"), device)
 
     def test_relay_is_not_guessed_from_temperature_difference(self):
         state = model.decode(api.parse_attributes(ATTRIBUTES))
@@ -185,6 +186,6 @@ class TestDeviceAndState(unittest.TestCase):
                     api.parse_attributes(text)
 
     def test_heat_and_auto_clear_hold_before_leaving_off(self):
-        self.assertEqual(model.mode_writes(model.Mode.OFF), [("A89", "1")])
+        self.assertEqual(model.mode_writes(model.Mode.OFF), [("A92", "0"), ("A88", "0"), ("A89", "1")])
         self.assertEqual(model.mode_writes(model.Mode.HEAT), [("A92", "1"), ("A88", "0"), ("A89", "0")])
         self.assertEqual(model.mode_writes(model.Mode.AUTO), [("A92", "0"), ("A88", "0"), ("A89", "0")])

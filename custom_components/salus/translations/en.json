@@ -3,12 +3,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect your SALUS iT500 account",
-        "description": "Use the email and password from the iT500 Plus app. Leave Device ID empty to discover your thermostat.",
+        "title": "Connect your SALUS account",
+        "description": "Use the SALUS account credentials for your device. Leave Device ID empty to discover available devices.",
         "data": {
           "username": "Email",
           "password": "Password",
-          "id": "Device ID or STA number (optional)"
+          "id": "Device ID or name (STA/SRT etc., optional)"
         }
       },
       "device": {
@@ -19,7 +19,7 @@
       },
       "reauth_confirm": {
         "title": "Reconnect to SALUS",
-        "description": "Enter your iT500 Plus app credentials again.",
+        "description": "Enter your SALUS mobile app credentials again.",
         "data": {
           "username": "Email",
           "password": "Password"
@@ -27,9 +27,9 @@
       }
     },
     "error": {
-      "invalid_auth": "SALUS rejected the email or password. Use the credentials that work in the iT500 Plus app.",
+      "invalid_auth": "SALUS rejected the email or password. Use the credentials that work in your SALUS mobile app.",
       "cannot_connect": "Could not connect to the SALUS mobile service. Try again later.",
-      "invalid_device": "The selected iT500 was not found on this account. Check the Device ID or leave it empty to discover devices."
+      "invalid_device": "The selected device was not found on this SALUS account. Check the Device ID or leave it empty to discover devices."
     },
     "abort": {
       "already_configured": "This thermostat is already configured.",
@@ -40,11 +40,11 @@
     "step": {
       "init": {
         "title": "SALUS account and thermostat",
-        "description": "Use your iT500 Plus app credentials. Leave Device ID empty to discover devices.",
+        "description": "Use your SALUS mobile app credentials. Leave Device ID empty to discover devices.",
         "data": {
           "username": "Email",
           "password": "Password",
-          "id": "Device ID or STA number (optional)"
+          "id": "Device ID or name (STA/SRT etc., optional)"
         }
       },
       "device": {
@@ -57,7 +57,7 @@
     "error": {
       "invalid_auth": "SALUS rejected the email or password.",
       "cannot_connect": "Could not connect to the SALUS mobile service. Try again later.",
-      "invalid_device": "The selected iT500 was not found on this account. Check the ID or leave it empty to discover devices."
+      "invalid_device": "The selected device was not found on this SALUS account. Check the ID or leave it empty to discover devices."
     }
   }
 }

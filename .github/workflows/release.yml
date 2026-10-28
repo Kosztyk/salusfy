@@ -1,4 +1,4 @@
-name: Publish Salusfy v1.2.1
+name: Publish Salusfy validated release
 on:
   workflow_run:
     workflows:
@@ -12,14 +12,14 @@ jobs:
     name: Publish after successful main validation
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch') &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - name: Publish validated v1.2.1
+      - name: Publish validated release
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -29,12 +29,12 @@ jobs:
           CURRENT_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
           [[ "$CURRENT_SHA" == "$VALIDATED_SHA" ]] || exit 0
           VERSION="$(python -c 'import json; print(json.load(open("custom_components/salus/manifest.json"))["version"])')"
-          [[ "$VERSION" == "1.2.1" ]] || exit 0
+          [[ "$VERSION" == "1.2.2" ]] || exit 0
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "Release already exists"; exit 0
           fi
           gh release create "v$VERSION" \
             --target "$VALIDATED_SHA" \
             --title "Salusfy v$VERSION" \
-            --notes-file RELEASE_NOTES_1.2.1.md \
+            --notes-file RELEASE_NOTES_1.2.2.md \
             --latest

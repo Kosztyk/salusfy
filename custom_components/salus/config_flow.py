@@ -1,4 +1,4 @@
-"""Validate the app credentials and discover iT500 devices without the website."""
+"""Validate credentials and discover every device on the SALUS mobile account."""
 
 from collections.abc import Mapping
 
@@ -39,9 +39,9 @@ async def _fetch_devices(hass, credentials):
     client = SalusClient(
         async_get_clientsession(hass), credentials[CONF_USERNAME], credentials[CONF_PASSWORD]
     )
-    devices = [d for d in await client.async_get_devices() if d.type_id == "1"]
+    devices = await client.async_get_devices()
     if not devices:
-        raise SalusDeviceError("No iT500 devices on this account")
+        raise SalusDeviceError("No SALUS devices on this account")
     return devices
 
 

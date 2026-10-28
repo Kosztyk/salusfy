@@ -33,7 +33,7 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
         self.client.async_get_attributes.return_value = updated
         with patch.object(coordinator_module.asyncio, "sleep", new=AsyncMock()):
             await self.coordinator.async_set_temperature(21.2)
-        self.assertEqual(self.client.async_set_attribute.await_args_list[0].args, ("1234", "F", "60"))
+        self.assertEqual(self.client.async_set_attribute.await_args_list[0].args, ("1234", "F", "1"))
         self.assertEqual(self.client.async_set_attribute.await_args_list[1].args, ("1234", "A85", "2120"))
         self.assertEqual(self.coordinator.data.target_temperature, 21.2)
 
@@ -82,7 +82,11 @@ class TestCoordinator(unittest.IsolatedAsyncioTestCase):
 class TestEntities(unittest.TestCase):
     def setUp(self):
         self.attrs = api.parse_attributes(ATTRIBUTES)
-        self.coordinator = SimpleNamespace(data=model.decode(self.attrs), last_update_success=True)
+        self.coordinator = SimpleNamespace(
+            data=model.decode(self.attrs), last_update_success=True, attributes=self.attrs,
+            zones=("A",), device_id="1234", device_type_id="1",
+        )
+        self.coordinator.zone_state = lambda zone="A": self.coordinator.data
 
     def test_climate_unique_id_is_unchanged(self):
         thermostat = climate.SalusThermostat(self.coordinator, "Salus Thermostat")

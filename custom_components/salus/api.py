@@ -1,4 +1,4 @@
-"""Async client for the Salus iT500 cloud API (the Arrayent backend of the mobile app).
+"""Async client for SALUS devices registered with the Arrayent mobile cloud.
 
 No Home Assistant imports: the session is injected, so the module is testable on
 its own. Adapted from ZaBug/salus-it500 (MIT), based on RichyA/pyit500.
@@ -41,7 +41,7 @@ class SalusAuthError(SalusError):
 
 
 class SalusDeviceError(SalusError):
-    """A thermostat must be selected from the authenticated account."""
+    """A device must be selected from the authenticated account."""
 
 
 class SalusConnectionError(SalusError):
@@ -101,19 +101,22 @@ def parse_document(text: str, expected: str) -> ET.Element:
 
 
 def select_device(devices: list[DeviceInfo], device_id: str | None) -> DeviceInfo:
-    """Reuse a saved website ID or STA number; discover a single iT500 automatically."""
-    supported = [device for device in devices if device.type_id == "1"]
+    """Resolve any account device; never assume a fixed numeric device type.
+
+    Preserve the existing numeric-ID and device-name selections across upgrades.
+    Do not silently select another device if the saved device disappears.
+    """
     requested = str(device_id or "").strip()
     if requested and requested.casefold() != "auto":
-        for device in supported:
+        for device in devices:
             if requested == device.device_id or requested.casefold() == device.name.casefold():
                 return device
-        raise SalusDeviceError("The selected iT500 is not on this SALUS account")
-    if len(supported) == 1:
-        return supported[0]
-    if not supported:
-        raise SalusDeviceError("No iT500 thermostat was found on this SALUS account")
-    raise SalusDeviceError("Select an iT500 thermostat from this account")
+        raise SalusDeviceError("The selected SALUS device is not on this account")
+    if len(devices) == 1:
+        return devices[0]
+    if not devices:
+        raise SalusDeviceError("No devices were returned by the SALUS mobile cloud")
+    raise SalusDeviceError("Select a SALUS device from this account")
 
 
 def parse_fault(text: str) -> SalusApiError | None:
@@ -143,21 +146,29 @@ def parse_attributes(text: str) -> dict[str, Attribute]:
             value=_child_text(element, "value"),
             updated_ms=int(updated) if updated.isdigit() else 0,
         )
+    # Arrayent includes device presence in the response, not necessarily in attrList.
+    presence = _child_text(root, "presenceInfo")
+    if "online" not in attributes and presence in ("0", "1"):
+        attributes["online"] = Attribute(value=presence, updated_ms=0)
     return attributes
 
 
 def parse_device_list(text: str) -> list[DeviceInfo]:
-    """Parse a getDeviceList response."""
+    """Parse every account device regardless of its model, name or type ID."""
     root = parse_document(text, "getDeviceListResponse")
-    return [
-        DeviceInfo(
-            device_id=_child_text(element, "devId"),
-            name=_child_text(element, "devName"),
-            type_id=_child_text(element, "typeId"),
-        )
-        for element in root
-        if _local(element.tag) == "devList"
-    ]
+    devices = []
+    for element in root:
+        if _local(element.tag) != "devList":
+            continue
+        dev_id = _child_text(element, "devId") or _child_text(element, "deviceId")
+        if not dev_id:
+            continue
+        devices.append(DeviceInfo(
+            device_id=dev_id,
+            name=_child_text(element, "devName") or _child_text(element, "deviceName") or dev_id,
+            type_id=_child_text(element, "typeId") or _child_text(element, "deviceTypeId"),
+        ))
+    return devices
 
 
 def parse_ret_code(text: str) -> int:
@@ -256,14 +267,17 @@ class SalusClient:
         async with self._lock:
             return parse_device_list(await self._call("post", "getDeviceList", {}))
 
-    async def async_get_attributes(self, device_id: str) -> dict[str, Attribute]:
+    async def async_get_attributes(self, device_id: str, device_type_id: str | None = None) -> dict[str, Attribute]:
         """All attributes of a device, as last reported to the cloud."""
         async with self._lock:
-            text = await self._call("post", "getDeviceAttributesWithValues", {"devId": device_id})
+            params = {"devId": device_id}
+            if device_type_id:
+                params["deviceTypeId"] = str(device_type_id)
+            text = await self._call("post", "getDeviceAttributesWithValues", params)
         return parse_attributes(text)
 
     async def async_set_attribute(self, device_id: str, name: str, value: str | int) -> None:
-        """Set one attribute. The iT500 reports multiAttributeCapable=false, so one per call."""
+        """Set one attribute per call for devices without multi-attribute support."""
         async with self._lock:
             text = await self._call(
                 "get",

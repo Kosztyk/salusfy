@@ -12,7 +12,7 @@ from .api import SalusAuthError, SalusClient, SalusDeviceError, SalusError, sele
 from .const import DOMAIN
 from .coordinator import SalusCoordinator
 
-PLATFORMS = ["climate", "sensor", "binary_sensor"]
+PLATFORMS = ["climate", "sensor", "binary_sensor", "select", "number"]
 
 
 def _merged_entry_config(entry: ConfigEntry) -> dict:
@@ -33,9 +33,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady(f"{err}; select the thermostat in the integration options") from err
     except SalusError as err:
         raise ConfigEntryNotReady(str(err)) from err
-    coordinator = SalusCoordinator(hass, entry, client, device.device_id)
+    coordinator = SalusCoordinator(hass, entry, client, device.device_id, device.type_id)
+    coordinator.device = device
     await coordinator.async_config_entry_first_refresh()
-    hass.data[DOMAIN][entry.entry_id] = {**config, "coordinator": coordinator}
+    hass.data[DOMAIN][entry.entry_id] = {**config, "coordinator": coordinator, "device": device}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True

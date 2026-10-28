@@ -19,7 +19,7 @@ def validate(root=ROOT):
     manifest_file=root/"custom_components/salus/manifest.json"
     if manifest_file.is_file():
         m=json.loads(manifest_file.read_text())
-        if m.get("domain")!="salus" or m.get("version")!="1.2.1":
+        if m.get("domain")!="salus" or m.get("version")!="1.2.2":
             errors.append("Incorrect domain/version")
         if m.get("codeowners")!=["@Kosztyk"]:
             errors.append("Missing correct codeowner")

@@ -1,426 +1,296 @@
-import datetime
-from datetime import timedelta
-import math
+"""Capability-based, device-grouped SALUS cloud sensors.
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+Battery codes and heating/hot-water codes are taken from both supplied
+Android v2.2.1 APKs. In particular, S03 is a *status*, never a battery %.
+Heating-duration entities are estimates based on successful A87 relay polls.
+"""
+
+from __future__ import annotations
+
+from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
+import math
+from homeassistant.const import UnitOfTemperature
 from homeassistant.helpers.entity import EntityCategory
-from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.const import (
-    STATE_UNAVAILABLE, 
-    STATE_UNKNOWN
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import DEFAULT_NAME, DOMAIN
-from .entity import climate_entity_id as resolve_climate_entity_id, legacy_unique_id
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-
-def _restore_float(value):
-    """Unavailable restored sensors must not prevent integration startup."""
-    try:
-        result = float(value)
-    except (TypeError, ValueError):
-        return 0.0
-    return result if math.isfinite(result) else 0.0
+from .device import link_entity
+from .entity import climate_entity_id, legacy_unique_id
+from .model import HOT_WATER_MODES, Mode, has_hot_water, value
 
 
-# Legacy history sensors sample the climate state; the cloud polls separately.
-SCAN_INTERVAL = timedelta(seconds=15)
-
-
-
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback
-):
-    """
-    Set up the sensor entities for the Salus integration from a config entry.
-    This replicates the behavior of your YAML-based 'history_stats' & template sensors.
-    """
+async def async_setup_entry(hass, entry, async_add_entities):
     config = hass.data[DOMAIN][entry.entry_id]
-    climate_entity_id = resolve_climate_entity_id(hass, config.get("name", DEFAULT_NAME))
+    coordinator = config["coordinator"]
+    climate_id = climate_entity_id(hass, config.get("name", DEFAULT_NAME))
+    entities: list = []
+    if "A" in coordinator.zones:
+        entities.extend([
+            SalusThermostatState(coordinator, legacy_unique_id(
+                hass, entry, "sensor", "_thermostat_state", f"{climate_id}_thermostat_state")),
+            SalusCurrentTempSensor(coordinator, legacy_unique_id(
+                hass, entry, "sensor", "_current_temperature", f"{climate_id}_current_temperature")),
+        ])
+        history = [
+            ("today", "Heater History", "_.heater_history", f"{climate_id}_.heater_history"),
+            ("yesterday", "Yesterday Heater History", "_yesterday_heater_history", f"{climate_id}_yesterday_heater_history"),
+            ("month", "This Month Heater History", "_this_month_heater_history", f"{climate_id}_this_month_heater_history"),
+            ("previous_month", "Last Month Heater History", "_last_month_heater_history", f"{climate_id}_last_month_heater_history"),
+            ("heating_time", "Heating Time", "_heating_time", "sensor.thermostat_state_heating_time"),
+        ]
+        for kind, name, suffix, fallback in history:
+            entities.append(SalusRuntimeSensor(coordinator, kind, name, legacy_unique_id(
+                hass, entry, "sensor", suffix, fallback)))
 
-    sensors = [
-        StareTermostatSensor(climate_entity_id),
-        StatisticaCentralaSensor(climate_entity_id),
-        StatisticaCentralaIeriSensor(climate_entity_id),
-        StatisticaCentralaLunaCurentaSensor(climate_entity_id),
-        StatisticaCentralaLunaTrecutaSensor(climate_entity_id),
-        DurataIncalzireSensor("sensor.thermostat_state"),  # references the sensor above
-        SalusCurrentTempSensor(config["coordinator"], f"{climate_entity_id}_current_temperature")
-    ]
-    # Recover existing unique IDs even if the source climate entity was renamed.
-    for sensor in sensors:
-        suffix = sensor._attr_unique_id.split("_", 1)[-1]
-        if isinstance(sensor, SalusCurrentTempSensor):
-            suffix = "_current_temperature"
-        elif isinstance(sensor, StareTermostatSensor):
-            suffix = "_thermostat_state"
-        elif isinstance(sensor, StatisticaCentralaSensor):
-            suffix = "_.heater_history"
-        elif isinstance(sensor, StatisticaCentralaIeriSensor):
-            suffix = "_yesterday_heater_history"
-        elif isinstance(sensor, StatisticaCentralaLunaCurentaSensor):
-            suffix = "_this_month_heater_history"
-        elif isinstance(sensor, StatisticaCentralaLunaTrecutaSensor):
-            suffix = "_last_month_heater_history"
-        elif isinstance(sensor, DurataIncalzireSensor):
-            suffix = "_heating_time"
-        sensor._attr_unique_id = legacy_unique_id(hass, entry, "sensor", suffix, sensor._attr_unique_id)
-    async_add_entities(sensors)
+    for zone in coordinator.zones:
+        if zone == "B" and f"{zone}84" in coordinator.attributes:
+            entities.append(SalusCurrentTempSensor(
+                coordinator, f"{coordinator.device_id}_zone_2_current_temperature", zone))
+        if f"{zone}85" in coordinator.attributes:
+            entities.append(SalusTargetTempSensor(coordinator, zone))
+        if f"{zone}93" in coordinator.attributes:
+            entities.append(SalusManualSetpointSensor(coordinator, zone))
+        if f"{zone}88" in coordinator.attributes:
+            entities.append(SalusOperatingModeSensor(coordinator, zone))
 
-
-class StareTermostatSensor(SensorEntity):
-    """
-    Replaces:
-      template:
-        - sensor:
-            - name: "stare termostat"
-              state: "{{ state_attr('climate.salus_thermostat','hvac_action') }}"
-    """
-    def __init__(self, climate_entity_id):
-        self._climate_entity_id = climate_entity_id
-        self._attr_name = "Thermostat State"
-        self._attr_unique_id = f"{climate_entity_id}_thermostat_state"
-        self._state = STATE_UNKNOWN
-
-    @property
-    def state(self):
-        return self._state
-
-    def update(self):
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        if not climate_state or climate_state.state in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            self._state = STATE_UNAVAILABLE
-            return
-        # mirror hvac_action
-        self._state = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
+    if has_hot_water(coordinator.attributes) and "C42" in coordinator.attributes:
+        entities.append(SalusHotWaterModeSensor(coordinator))
+    if "S03" in coordinator.attributes:
+        entities.append(SalusBatteryStatusSensor(coordinator))
+    if "rfrssi" in coordinator.attributes:
+        entities.append(SalusRFRawSensor(coordinator))
+    entities.append(SalusDeviceStatusSensor(coordinator, config.get("device")))
+    for entity in entities:
+        link_entity(entity, coordinator)
+    async_add_entities(entities)
 
 
-class StatisticaCentralaSensor(SensorEntity, RestoreEntity):
-    """
-    Replaces:
-      - platform: history_stats
-        name: 'StatisticaCentrala'
-        entity_id: climate.salus_thermostat
-        state: "heating"
-        type: time
-        start: midnight
-        end: now
+class SalusSensor(CoordinatorEntity, SensorEntity):
+    """Shared availability rule for explicitly reported cloud data."""
 
-    Accumulates heating time in memory from midnight to current.
-    Resets daily at midnight. Loses info on HA restart.
-    """
-    def __init__(self, climate_entity_id):
-        self._climate_entity_id = climate_entity_id
-        self._attr_name = "Heater History"
-        self._attr_unique_id = f"{climate_entity_id}_.heater_history"
-        self._hours_heating = 0.0
-        self._last_update = datetime.datetime.now()
-        self._last_state = STATE_UNKNOWN
-
-    async def async_added_to_hass(self):
-        """Restore state on startup."""
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state:
-            self._hours_heating = _restore_float(last_state.state)
-            attributes = last_state.attributes
-            if "last_update" in attributes:
-                self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
-            if "last_state" in attributes:
-                self._last_state = attributes["last_state"]
-
-    @property
-    def state(self):
-        return round(self._hours_heating, 2)
-
-    @property
-    def extra_state_attributes(self):
-        return {
-            "last_update": self._last_update.isoformat(),
-            "last_state": self._last_state,
-        }
-
-    def update(self):
-        now = datetime.datetime.now()
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
-        else:
-            hvac_action = STATE_UNAVAILABLE
-
-        # reset if day changed
-        if now.date() != self._last_update.date():
-            self._hours_heating = 0.0
-
-        # accumulate if last state was "heating"
-        time_diff = (now - self._last_update).total_seconds() / 3600.0
-        if self._last_state == "heating":
-            self._hours_heating += time_diff
-
-        self._last_state = hvac_action
-        self._last_update = now
-
-
-class StatisticaCentralaIeriSensor(SensorEntity, RestoreEntity):
-    """
-    Tracks yesterday's heating time.
-    Resets at midnight, storing the previous day's total.
-    """
-    def __init__(self, climate_entity_id):
-        self._climate_entity_id = climate_entity_id
-        self._attr_name = "Yesterday Heater History"
-        self._attr_unique_id = f"{climate_entity_id}_yesterday_heater_history"
-        self._state = 0.0  # yesterday's total
-        self._today_heating = 0.0
-        self._last_update = datetime.datetime.now()
-        self._last_state = STATE_UNKNOWN
-
-    async def async_added_to_hass(self):
-        """Restore state on startup."""
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state:
-            self._state = _restore_float(last_state.state)
-            attributes = last_state.attributes
-            if "today_heating" in attributes:
-                self._today_heating = _restore_float(attributes["today_heating"])
-            if "last_update" in attributes:
-                self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
-            if "last_state" in attributes:
-                self._last_state = attributes["last_state"]
-
-    @property
-    def state(self):
-        return round(self._state, 2)
-
-    @property
-    def extra_state_attributes(self):
-        return {
-            "today_heating": round(self._today_heating, 2),
-            "last_update": self._last_update.isoformat(),
-            "last_state": self._last_state,
-        }
-
-    def update(self):
-        now = datetime.datetime.now()
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        hvac_action = STATE_UNKNOWN
-        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
-
-        time_diff = (now - self._last_update).total_seconds() / 3600.0
-        if self._last_state == "heating":
-            self._today_heating += time_diff
-
-        # if new day => move today's total to "yesterday"
-        if now.date() != self._last_update.date():
-            self._state = self._today_heating
-            self._today_heating = 0.0
-
-        self._last_state = hvac_action
-        self._last_update = now
-
-
-class StatisticaCentralaLunaCurentaSensor(SensorEntity, RestoreEntity):
-    """
-    Tracks heating time for the current month.
-    Resets at the start of each month.
-    """
-    def __init__(self, climate_entity_id):
-        self._climate_entity_id = climate_entity_id
-        self._attr_name = "This Month Heater History"
-        self._attr_unique_id = f"{climate_entity_id}_this_month_heater_history"
-        self._state = 0.0  # This month's total heating hours
-        self._monthly_heating = 0.0
-        self._last_update = datetime.datetime.now()
-        self._last_state = STATE_UNKNOWN
-
-    async def async_added_to_hass(self):
-        """Restore state on startup."""
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state:
-            # restore to _monthly_heating
-            self._monthly_heating = _restore_float(last_state.state)
-            attributes = last_state.attributes
-            if "last_update" in attributes:
-                self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
-            if "last_state" in attributes:
-                self._last_state = attributes["last_state"]
-
-        # initialize _state to _monthly_heating on restore
-        self._state = self._monthly_heating
-
-    @property
-    def state(self):
-        return round(self._monthly_heating, 2)  # display _monthly_heating as state
-
-    @property
-    def extra_state_attributes(self):
-        return {
-            "last_update": self._last_update.isoformat(),
-            "last_state": self._last_state,
-        }
-
-    def update(self):
-        now = datetime.datetime.now()
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        hvac_action = STATE_UNKNOWN
-        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
-
-        time_diff = (now - self._last_update).total_seconds() / 3600.0
-        if self._last_state == "heating":
-            self._monthly_heating += time_diff
-
-        # if new month => reset this month's heating
-        if now.month != self._last_update.month:
-            self._monthly_heating = 0.0
-
-        self._last_state = hvac_action
-        self._last_update = now
-
-
-class StatisticaCentralaLunaTrecutaSensor(SensorEntity, RestoreEntity):
-    """
-    Tracks heating time for the last month.
-    Updates at the start of each month.
-    """
-    def __init__(self, climate_entity_id):
-        self._climate_entity_id = climate_entity_id
-        self._attr_name = "Last Month Heater History"
-        self._attr_unique_id = f"{climate_entity_id}_last_month_heater_history"
-        self._state = 0.0  # Last month's total heating hours
-        self._this_month_heating = 0.0
-        self._last_update = datetime.datetime.now()
-        self._last_state = STATE_UNKNOWN
-
-    async def async_added_to_hass(self):
-        """Restore state on startup."""
-        await super().async_added_to_hass()
-        last_state = await self.async_get_last_state()
-        if last_state:
-            self._state = _restore_float(last_state.state)  # restore last month's history
-            attributes = last_state.attributes
-            if "this_month_heating" in attributes:
-                self._this_month_heating = _restore_float(attributes["this_month_heating"])
-            if "last_update" in attributes:
-                self._last_update = datetime.datetime.fromisoformat(attributes["last_update"])
-            if "last_state" in attributes:
-                self._last_state = attributes["last_state"]
-
-    @property
-    def state(self):
-        return round(self._state, 2)  # display last month's history
-
-    @property
-    def extra_state_attributes(self):
-        return {
-            "this_month_heating": round(self._this_month_heating, 2),
-            "last_update": self._last_update.isoformat(),
-            "last_state": self._last_state,
-        }
-
-    def update(self):
-        now = datetime.datetime.now()
-        climate_state = self.hass.states.get(self._climate_entity_id)
-        hvac_action = STATE_UNKNOWN
-        if climate_state and climate_state.state not in (STATE_UNAVAILABLE, STATE_UNKNOWN):
-            hvac_action = climate_state.attributes.get("hvac_action", STATE_UNKNOWN)
-
-        time_diff = (now - self._last_update).total_seconds() / 3600.0
-        if self._last_state == "heating":
-            self._this_month_heating += time_diff
-
-        # if new month => move this month's total to "last month"
-        if now.month != self._last_update.month:
-            self._state = self._this_month_heating  # current month becomes last month
-            self._this_month_heating = 0.0          # reset current month counter
-
-        self._last_state = hvac_action
-        self._last_update = now
-
-
-class DurataIncalzireSensor(SensorEntity):
-    """
-    Replaces:
-      - platform: history_stats
-        name: 'durata incalzire'
-        entity_id: sensor.stare_termostat
-        state: "heating"
-        type: time
-        start: midnight
-        end: now
-
-    We look at sensor.stare_termostat to see if it's "heating".
-    """
-    def __init__(self, stare_termostat_entity_id):
-        self._stare_termostat_entity_id = stare_termostat_entity_id
-        self._attr_name = "Heating Time"
-        self._attr_unique_id = f"{stare_termostat_entity_id}_heating_time"
-        self._hours_heating = 0.0
-        self._last_update = datetime.datetime.now()
-        self._last_state = STATE_UNKNOWN
-
-    @property
-    def state(self):
-        return round(self._hours_heating, 2)
-
-    def update(self):
-        now = datetime.datetime.now()
-        stare_state = self.hass.states.get(self._stare_termostat_entity_id)
-        if stare_state:
-            hvac_action = stare_state.state  # i.e. "heating" or "idle"
-        else:
-            hvac_action = STATE_UNKNOWN
-
-        # Reset if new day
-        if now.date() != self._last_update.date():
-            self._hours_heating = 0.0
-
-        # If last state was "heating," accumulate
-        time_diff = (now - self._last_update).total_seconds() / 3600.0
-        if self._last_state == "heating":
-            self._hours_heating += time_diff
-
-        self._last_state = hvac_action
-        self._last_update = now
-
-
-# --------------------------------------------------------------------------
-# Below is the NEW sensor for Current Temperature from your Salus climate.
-# --------------------------------------------------------------------------
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorStateClass,
-)
-from homeassistant.const import (
-    UnitOfTemperature,
-)
-
-class SalusCurrentTempSensor(CoordinatorEntity, SensorEntity):
-    """Sensor to expose the current temperature from the Salus climate entity."""
-
-    def __init__(self, coordinator, unique_id: str):
-        super().__init__(coordinator)
-        self._attr_name = "Salus Current Temperature"
-        self._attr_unique_id = unique_id
-        # Provide device_class & state_class for improved UI
-        self._attr_device_class = SensorDeviceClass.TEMPERATURE
-        self._attr_state_class = SensorStateClass.MEASUREMENT
-        self._attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
-
-    @property
-    def native_value(self):
-        """Numeric values or None; availability is separate from the value."""
-        return self.coordinator.data.current_temperature
+    _attr_has_entity_name = True
 
     @property
     def available(self):
-        data = self.coordinator.data
-        return super().available and data is not None and data.online is not False and data.current_temperature is not None
+        device_offline = (getattr(getattr(self.coordinator, "data", None), "online", None) is False)
+        return (super().available and not device_offline
+                and value(self.coordinator.attributes, "online") != "0"
+                and self.native_value is not None)
+
+
+class SalusCurrentTempSensor(SalusSensor):
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator, unique_id: str, zone: str = "A") -> None:
+        super().__init__(coordinator)
+        self.zone = zone
+        self._attr_name = "Current temperature" if zone == "A" else "Zone 2 current temperature"
+        self._attr_unique_id = unique_id
+
+    @property
+    def native_value(self):
+        return self.coordinator.zone_state(self.zone).current_temperature
+
+
+class SalusTargetTempSensor(SalusSensor):
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, zone="A") -> None:
+        super().__init__(coordinator)
+        self.zone = zone
+        self._attr_name = "Target temperature" if zone == "A" else "Zone 2 target temperature"
+        self._attr_unique_id = f"{coordinator.device_id}_zone_{zone.lower()}_target_temperature"
+
+    @property
+    def native_value(self):
+        return self.coordinator.zone_state(self.zone).target_temperature
+
+
+class SalusManualSetpointSensor(SalusSensor):
+    _attr_name = "Saved manual temperature"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+
+    def __init__(self, coordinator, zone="A") -> None:
+        super().__init__(coordinator)
+        self.zone = zone
+        if zone == "B":
+            self._attr_name = "Zone 2 saved manual temperature"
+        self._attr_unique_id = (f"{coordinator.device_id}_saved_manual_temperature" if zone == "A"
+                                else f"{coordinator.device_id}_zone_2_saved_manual_temperature")
+
+    @property
+    def native_value(self):
+        return self.coordinator.zone_state(self.zone).manual_target_temperature
+
+
+class SalusThermostatState(SalusSensor):
+    """Legacy thermostat-state entity now reads the actual zone relay."""
+
+    _attr_name = "Thermostat state"
+    _attr_icon = "mdi:thermostat"
+
+    def __init__(self, coordinator, unique_id):
+        super().__init__(coordinator)
+        self._attr_unique_id = unique_id
+
+    @property
+    def native_value(self):
+        state = self.coordinator.zone_state()
+        if state.heating is None:
+            return None
+        if state.heating:
+            return "cooling" if value(self.coordinator.attributes, "S05") == "1" else "heating"
+        return "off" if state.mode == Mode.OFF else "idle"
+
+
+class SalusOperatingModeSensor(SalusSensor):
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(self, coordinator, zone="A"):
+        super().__init__(coordinator)
+        self.zone = zone
+        self._attr_name = "Operating mode" if zone == "A" else "Zone 2 operating mode"
+        self._attr_unique_id = f"{coordinator.device_id}_zone_{zone.lower()}_operating_mode"
+
+    @property
+    def native_value(self):
+        state = self.coordinator.zone_state(self.zone)
+        if state.mode is None:
+            return None
+        if state.mode == Mode.AUTO and state.temporary_hold:
+            return "Temporary override"
+        if state.mode == Mode.HEAT and value(self.coordinator.attributes, "S05") == "1":
+            return "Manual (cooling)"
+        return {Mode.OFF: "Off", Mode.HEAT: "Manual", Mode.AUTO: "Schedule"}[state.mode]
+
+
+class SalusRuntimeSensor(CoordinatorEntity, SensorEntity, RestoreEntity):
+    """Estimated heating duration from sampled relay, not guessed from setpoint."""
+
+    _attr_has_entity_name = True
+
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = "h"
+    _attr_icon = "mdi:timer-outline"
+
+    def __init__(self, coordinator, kind, name, unique_id):
+        super().__init__(coordinator)
+        self.kind = kind
+        self._attr_name = name
+        self._attr_unique_id = unique_id
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        # One authoritative snapshot prevents five sensors counting separately.
+        if self.kind == "today":
+            previous = await self.async_get_last_state()
+            if previous is not None:
+                self.coordinator.runtime.restore(dict(previous.attributes), dt_util.now())
+
+    @property
+    def native_value(self):
+        return self.coordinator.runtime.read_hours(self.kind)
+
+    @property
+    def available(self):
+        return super().available and "A" in self.coordinator.zones
+
+    @property
+    def extra_state_attributes(self):
+        if self.kind == "today":
+            return self.coordinator.runtime.snapshot()
+        return {"calculation": "sampled heating relay; not a metered energy value"}
+
+
+class SalusBatteryStatusSensor(SalusSensor):
+    """iT500+/RT310i APK DeviceDetail.getBatteryLevelResId maps S03 0/1/2."""
+
+    _attr_name = "Battery status"
+    _attr_icon = "mdi:battery"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.device_id}_battery_status"
+
+    @property
+    def native_value(self):
+        return {"0": "Normal", "1": "Low", "2": "Very low"}.get(value(self.coordinator.attributes, "S03"))
+
+
+class SalusRFRawSensor(SalusSensor):
+    """Show RF signal as the raw app-reported value, without inventing a dBm scale."""
+
+    _attr_name = "RF signal (raw)"
+    _attr_icon = "mdi:signal"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.device_id}_rf_signal_raw"
+
+    @property
+    def native_value(self):
+        return value(self.coordinator.attributes, "rfrssi")
+
+
+class SalusHotWaterModeSensor(SalusSensor):
+    _attr_name = "Hot water mode"
+    _attr_icon = "mdi:water-boiler"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.device_id}_hot_water_mode"
+
+    @property
+    def native_value(self):
+        return HOT_WATER_MODES.get(value(self.coordinator.attributes, "C42"))
+
+
+class SalusDeviceStatusSensor(CoordinatorEntity, SensorEntity):
+    """Keep unsupported SALUS models visible as a device with diagnostics."""
+
+    _attr_has_entity_name = True
+
+    _attr_name = "Cloud status"
+    _attr_icon = "mdi:cloud-check"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, coordinator, device=None):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.device_id}_cloud_status"
+        self.device = device
+
+    @property
+    def native_value(self):
+        raw = value(self.coordinator.attributes, "online")
+        return {"0": "offline", "1": "online"}.get(raw, "presence unknown")
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "device_id": self.coordinator.device_id,
+            "device_type_id": self.coordinator.device_type_id,
+            "heating_zones": list(self.coordinator.zones),
+            "hot_water_detected": has_hot_water(self.coordinator.attributes),
+            "attribute_count": len(self.coordinator.attributes),
+            "available_attribute_names": sorted(self.coordinator.attributes),
+        }
+
+
+def _restore_float(value):
+    """Legacy compatibility helper; old history totals are not restored as facts."""
+    try:
+        numeric = float(value)
+        return numeric if math.isfinite(numeric) else 0.0
+    except (TypeError, ValueError):
+        return 0.0

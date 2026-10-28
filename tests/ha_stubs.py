@@ -5,6 +5,7 @@ client code, while these stubs cover migration and error-handling contracts.
 """
 
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from enum import IntFlag, StrEnum
 import re
 import sys
@@ -71,6 +72,7 @@ class CoordinatorEntity:
 class HVACMode(StrEnum):
     OFF = "off"
     HEAT = "heat"
+    COOL = "cool"
     AUTO = "auto"
 
 
@@ -78,6 +80,7 @@ class HVACAction(StrEnum):
     OFF = "off"
     IDLE = "idle"
     HEATING = "heating"
+    COOLING = "cooling"
 
 
 class Features(IntFlag):
@@ -147,13 +150,16 @@ def interfaces():
     module("homeassistant.helpers.aiohttp_client", async_get_clientsession=lambda hass: None)
     module("homeassistant.helpers.entity_registry", async_get=lambda hass: hass.registry, async_entries_for_config_entry=lambda registry, entry_id: registry.entries)
     module("homeassistant.helpers.entity_platform", AddEntitiesCallback=object)
-    module("homeassistant.helpers.entity", EntityCategory=object)
+    module("homeassistant.helpers.entity", EntityCategory=SimpleNamespace(DIAGNOSTIC="diagnostic", CONFIG="config"))
     module("homeassistant.helpers.restore_state", RestoreEntity=Restore)
     module("homeassistant.helpers.selector", TextSelector=lambda config: config, TextSelectorConfig=lambda **kwargs: kwargs, TextSelectorType=SimpleNamespace(PASSWORD="password"))
     module("homeassistant.components.climate", ClimateEntity=Entity)
     module("homeassistant.components.climate.const", ClimateEntityFeature=Features, HVACAction=HVACAction, HVACMode=HVACMode)
-    module("homeassistant.components.sensor", SensorEntity=Entity, SensorDeviceClass=SimpleNamespace(TEMPERATURE="temperature"), SensorStateClass=SimpleNamespace(MEASUREMENT="measurement"))
-    module("homeassistant.components.binary_sensor", BinarySensorEntity=Entity)
+    module("homeassistant.components.sensor", SensorEntity=Entity, SensorDeviceClass=SimpleNamespace(TEMPERATURE="temperature", DURATION="duration", BATTERY="battery"), SensorStateClass=SimpleNamespace(MEASUREMENT="measurement"))
+    module("homeassistant.components.binary_sensor", BinarySensorEntity=Entity, BinarySensorDeviceClass=SimpleNamespace(BATTERY="battery"))
+    module("homeassistant.components.select", SelectEntity=Entity)
+    module("homeassistant.components.number", NumberEntity=Entity)
+    module("homeassistant.util.dt", now=lambda: datetime.now(timezone.utc))
     module("homeassistant.util", slugify=lambda text: re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_"))
     module("voluptuous", Schema=lambda schema: schema, Required=lambda key, **kwargs: key, Optional=lambda key, **kwargs: key, In=lambda values: values)
     with patch.dict(sys.modules, modules):

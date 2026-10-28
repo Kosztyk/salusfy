@@ -1,4 +1,4 @@
-## 1.2.2 — local device-UI/sensor-audited build (2026-10-28)
+## 1.2.2 — device UI, multi-model compatibility and sensor audit (2026-10-28)
 
 - Register one native Home Assistant SALUS device per configured cloud device; group its controls and readings, and use concise entity names.
 - Add mobile-APK-verified `S03` battery status and low-battery binary entities, without claiming percentage.

@@ -1,6 +1,6 @@
 # Salusfy v1.2.2 — Manual installation / upgrade
 
-This guide is for the **local device-UI and battery-status build** of the unofficial SALUS integration for Home Assistant. It is not a new HACS release. No GitHub publication is required.
+This guide covers the published **Salusfy v1.2.2** release, including native device grouping and battery status. Download the [official v1.2.2 GitHub release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
 
 ## 1. Back up your existing installation
 
@@ -10,7 +10,7 @@ This guide is for the **local device-UI and battery-status build** of the unoffi
 
 ## 2. Copy the integration files
 
-1. Download `salusfy-1.2.2-device-ui-integration.zip` and extract it on your computer.
+1. Download **Source code (zip)** from the [v1.2.2 release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2) and extract it on your computer. If you already have the standalone `salusfy-1.2.2-device-ui-integration.zip`, that package works as well.
 2. Find the folder `custom_components/salus` inside the extracted archive.
 3. In Home Assistant, open File Editor, Studio Code Server, Samba, or the SSH terminal.
 4. Copy the entire **`salus`** folder to `/config/custom_components/salus/`, overwriting the old files. The final path must look like this:
@@ -37,7 +37,7 @@ This guide is for the **local device-UI and battery-status build** of the unoffi
 
 ### Optional SSH installation
 
-After uploading the ZIP to `/config/`, run:
+The following command applies **only** to the standalone `salusfy-1.2.2-device-ui-integration.zip` (which contains `custom_components/salus/` at the ZIP root). For the GitHub **Source code (zip)** download, extract its top-level repository folder first and copy the nested `custom_components/salus/` into `/config/custom_components/salus/` instead. After uploading the standalone ZIP to `/config/`, run:
 
 ```sh
 cd /config

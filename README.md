@@ -2,7 +2,7 @@
 
 Unofficial Home Assistant integration for SALUS devices registered with the **SALUS/Arrayent mobile cloud**, including **iT500** and **RT310i**. Version **1.2.2** removes the old hard-coded iT500 device-type filter and uses the device's actual numeric type ID when retrieving its attributes. The retired `salus-it500.com` website is not used.
 
-Requires Home Assistant 2025.8 or later. This version is a **local validation package**, not a published GitHub/HACS release.
+Requires Home Assistant 2025.8 or later. **v1.2.2 is published on [GitHub Releases](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2).** Inclusion in the default HACS catalog is pending review of [PR #12460](https://github.com/hacs/default/pull/12460); until it is merged, install it using a HACS custom repository or the manual instructions below.
 
 ## Installation or upgrade
 

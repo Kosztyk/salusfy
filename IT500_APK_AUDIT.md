@@ -1,4 +1,4 @@
-# iT500 Plus APK compatibility audit — Salusfy 1.2.2 (local build)
+# iT500 Plus APK compatibility audit — Salusfy v1.2.2
 
 Date: 2026-10-28. Compared `iT500+Plus_2.2.1_APKPure.xapk` and `RT310i_2.2.1_APKPure.xapk` against the integration's Arrayent client and HA entities. Analysis is static APK/DEX inspection, not a live API or device acceptance test.
 

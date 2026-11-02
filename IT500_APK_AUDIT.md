@@ -2,6 +2,12 @@
 
 Date: 2026-10-28. Compared `iT500+Plus_2.2.1_APKPure.xapk` and `RT310i_2.2.1_APKPure.xapk` against the integration's Arrayent client and HA entities. Analysis is static APK/DEX inspection, not a live API or device acceptance test.
 
+## Subsequent real-device feedback
+
+**RT310i operation was successfully confirmed by a device owner.** After the v1.2.2 build was supplied for the RT310i discovery regression in [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.” This is separate real-device feedback in addition to the static audit below.
+
+The report is general RT310i confirmation, not a per-command acknowledgment/readback log. It does not validate iT500 single-zone or zone-two writes, hot-water mode (`C42`) or boost (`C43`). Those iT500 paths still lack linked real-device confirmation.
+
 ## Evidence extracted from Android application code
 
 - Both apps embed Arrayent and use `https://sal-emea-p01-api.arrayent.com/zdk/services/zamapi/`.
@@ -22,12 +28,12 @@ Date: 2026-10-28. Compared `iT500+Plus_2.2.1_APKPure.xapk` and `RT310i_2.2.1_APK
 5. Treat special iT500 temperature values as unavailable, rather than publishing false high temperatures.
 6. Display cooling action if S05 indicates cooling, without writing S05 automatically.
 7. Add hot-water select (C42) and boost number (C43), only where supported. Existing C45 binary output is retained.
-8. Prevent control writes for devices that only expose an unfamiliar A85 setpoint without the complete verified operating-mode contract.
+8. Prevent control writes for devices that only expose an unfamiliar A85 setpoint without the complete APK-derived operating-mode contract.
 9. Keep A93/B93 read-only: the supplied APK's ordinary set-temperature requests send A85/B85, plus A88/B88 in scheduled mode, not A93/B93 directly.
 
 ## Limitations
 
-The added tests use controlled API responses and HA interface stubs. The apps provide further capabilities (weekly schedules, holiday settings, frost/energy controls and global heating/cooling configuration), which are not claimed as implemented. Other SALUS cloud ecosystems and devices lacking the verified Arrayent attribute contract cannot be automatically controlled. Before public HACS release, test one RT310i and representative iT500 configurations (single heating, dual zone and heating + hot water), including actual write acknowledgments and readback.
+The added tests use controlled API responses and HA interface stubs. The apps provide further capabilities (weekly schedules, holiday settings, frost/energy controls and global heating/cooling configuration), which are not claimed as implemented. Other SALUS cloud ecosystems and devices lacking the APK-derived Arrayent attribute contract cannot be automatically controlled. Successful RT310i operation is now backed by the owner report above; it must not be generalized to iT500. Before HACS catalog acceptance, each unconfirmed iT500 write path must be removed from the submitted release or supported by a linked owner report from the relevant configuration (single heating, dual zone or heating + hot water), including actual write acknowledgments and readback, as requested in the [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271).
 
 ## Battery status, Home Assistant devices, and sensor consistency audit
 

@@ -4,6 +4,22 @@ Unofficial Home Assistant integration for SALUS devices registered with the **SA
 
 Requires Home Assistant 2025.8 or later. **v1.2.2 is published on [GitHub Releases](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2).** Inclusion in the default HACS catalog is pending review of [PR #12460](https://github.com/hacs/default/pull/12460); until it is merged, install it using a HACS custom repository or the manual instructions below.
 
+## Confirmed real-device testing
+
+**RT310i: tested successfully by a device owner with the supplied v1.2.2 build.** In [issue #8 — “Do not work with RT310i anymore”](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` reported that their RT310i was no longer discovered after an update. After installing the supplied v1.2.2 build, they [confirmed on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410):
+
+> Wow, thank you for the fast answer. Works perfect.
+
+This confirms successful RT310i operation reported by a real device owner. It is a general success report, not a command-by-command test log or confirmation of other SALUS models.
+
+| Device / capability | Validation evidence |
+| --- | --- |
+| RT310i operation with the supplied v1.2.2 build | Successful real-device owner report linked above |
+| iT500 heating, including zone-two writes | Android APK analysis and offline tests; no iT500 owner confirmation linked here |
+| iT500 hot-water mode and boost writes | Android APK analysis and offline tests; not covered by the RT310i report |
+
+The iT500 write controls remain implemented in v1.2.2, but must not be described as hardware-tested on the basis of issue #8. The [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271) requires removal of unconfirmed write paths or linked real-device confirmation before acceptance.
+
 ## Installation or upgrade
 
 For manual installation, extract this package and copy **`custom_components/salus`** to `/config/custom_components/salus/` in Home Assistant, replacing the previous integration files, then restart Home Assistant. The domain remains `salus`, and existing configured entries/zone-one unique IDs are preserved. A backup is recommended before updating.
@@ -30,7 +46,7 @@ This integration **does not restrict discovery to two model names or a fixed `ty
 | `S05` | iT500 heating/cooling configuration: correct readout and HVAC action; global configuration is not changed automatically |
 | `C42`, `C45` | Hot-water Schedule/Once/On/Off select and actual hot-water output (when present) |
 | `C43` | Hot-water boost 0–3 hours (when present) |
-| Other Arrayent attribute sets | Cloud-device status and capability metadata; **no unverified write controls** |
+| Other Arrayent attribute sets | Cloud-device status and capability metadata; read-only when the complete known control attribute set is absent |
 
 The current setpoint `A85` and the saved manual-mode setpoint `A93` are *different attributes*. Normal setpoint commands write `A85` (and `A88` when activating a scheduled override), matching the provided RT310i 2.2.1 Android app. `A93` is **read and exposed**, and is used as a manual-mode display fallback when `A85` is absent. Writing to `A93` is not supported because the app's normal setpoint command does not write it. The active schedule is not overwritten when switching modes.
 
@@ -40,7 +56,7 @@ Polling is every 60 seconds. Temperature and mode commands check acknowledgment 
 
 ## Compatibility limits
 
-**Universal SALUS compatibility is not guaranteed.** The integration discovers every device returned by this **specific Arrayent mobile account**. Devices using other SALUS ecosystems, gateways, local protocols, or cloud services will not appear through this API. Unknown models have read-only status unless they expose the complete verified A/B thermostat control contract; a lone setpoint attribute is not sufficient to permit writing. iT500/RT310i readings and main climate controls are checked against both bundled Android apps and offline protocol tests, **not verified with live accounts or physical gateways**. iT500 hot-water modes and boost are implemented only when the observed Cxx attributes are reported. The Android apps have additional features that this integration does **not** implement, including editing weekly schedules, holiday settings, frost threshold, energy saving, and changing the gateway's global heat/cool setting. This is not a claim of complete mobile-app feature parity.
+**Universal SALUS compatibility is not guaranteed.** The integration discovers every device returned by this **specific Arrayent mobile account**. Devices using other SALUS ecosystems, gateways, local protocols, or cloud services will not appear through this API. Unknown models have read-only status unless they expose the complete A/B thermostat attribute contract checked against the Android apps; a lone setpoint attribute is not sufficient to permit writing. These attribute checks are not proof of physical-device compatibility. **RT310i operation was successfully confirmed by a device owner**, as documented above. iT500 readings and controls have been checked against the Android app and offline protocol tests; issue #8 provides no iT500 hardware confirmation. iT500 hot-water modes and boost are implemented only when the observed Cxx attributes are reported, and still require separate real-device confirmation. The Android apps have additional features that this integration does **not** implement, including editing weekly schedules, holiday settings, frost threshold, energy saving, and changing the gateway's global heat/cool setting. This is not a claim of complete mobile-app feature parity.
 
 The legacy heating-history entity IDs are retained for zone one, but their old inconsistent timers are replaced by a shared **estimated relay runtime** tracker. Readings cannot reconstruct historic heating from before the new tracker was installed. For unknown devices with no heating-zone attributes, only the cloud status/capability entity is created. This prevents unrelated products from being misrepresented as thermostats.
 

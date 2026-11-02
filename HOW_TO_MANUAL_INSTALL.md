@@ -92,4 +92,6 @@ Restore the old `/config/custom_components/salus/` folder from the backup and re
 
 ## Scope of validation
 
-This v1.2.2 build was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. A live SALUS cloud account and physical thermostat were not available for end-to-end verification. Existing basic controls and historical entity identifiers have been kept, but broad SALUS hardware parity cannot be guaranteed.
+This v1.2.2 build was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. **A real RT310i owner also confirmed successful operation:** after installing the supplied v1.2.2 build for [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
+
+This is general RT310i confirmation, not a per-command test log. It does not confirm iT500 heating, zone-two, hot-water mode or boost controls; those remain implemented in v1.2.2 based on APK analysis and offline tests, with separate physical-device confirmation still required. Existing basic controls and historical entity identifiers have been kept, but broad SALUS hardware parity cannot be guaranteed.

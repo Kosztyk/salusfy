@@ -6,7 +6,7 @@ Date: 2026-10-28. Compared `iT500+Plus_2.2.1_APKPure.xapk` and `RT310i_2.2.1_APK
 
 **RT310i operation was successfully confirmed by a device owner.** After the v1.2.2 build was supplied for the RT310i discovery regression in [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.” This is separate real-device feedback in addition to the static audit below.
 
-The report is general RT310i confirmation, not a per-command acknowledgment/readback log. It does not validate iT500 single-zone or zone-two writes, hot-water mode (`C42`) or boost (`C43`). Those iT500 paths still lack linked real-device confirmation.
+**SALUS iT500, firmware 11.7:** repository maintainer and device owner `Kosztyk` confirmed successful real-device testing of **all implemented controls**, including zone-one and zone-two setpoints, operating modes and scheduled overrides, plus hot-water mode and boost. This confirmation was recorded on November 2, 2026. This is a separate [iT500 owner test report](VALIDATION.md#successful-real-device-test-it500), covering `A85/A88/A89/A92`, `B85/B88/B89/B92`, `C42` and `C43`. The RT310i report and the maintainer's iT500 confirmation are physical-device evidence, distinct from this static APK audit.
 
 ## Evidence extracted from Android application code
 
@@ -33,7 +33,7 @@ The report is general RT310i confirmation, not a per-command acknowledgment/read
 
 ## Limitations
 
-The added tests use controlled API responses and HA interface stubs. The apps provide further capabilities (weekly schedules, holiday settings, frost/energy controls and global heating/cooling configuration), which are not claimed as implemented. Other SALUS cloud ecosystems and devices lacking the APK-derived Arrayent attribute contract cannot be automatically controlled. Successful RT310i operation is now backed by the owner report above; it must not be generalized to iT500. Before HACS catalog acceptance, each unconfirmed iT500 write path must be removed from the submitted release or supported by a linked owner report from the relevant configuration (single heating, dual zone or heating + hot water), including actual write acknowledgments and readback, as requested in the [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271).
+The added tests use controlled API responses and HA interface stubs. The apps provide further capabilities (weekly schedules, holiday settings, frost/energy controls and global heating/cooling configuration), which are not claimed as implemented. Other SALUS cloud ecosystems and devices lacking the APK-derived Arrayent attribute contract cannot be automatically controlled. Successful RT310i operation is backed by the independent owner report above. All implemented iT500 write controls are additionally confirmed by maintainer/device owner `Kosztyk` on firmware 11.7, including the zone-two and hot-water paths raised in the [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271). These are owner reports of successful operation, not raw protocol captures or exhaustive certification of other firmware/models. Any future write path needs its own real-device confirmation.
 
 ## Battery status, Home Assistant devices, and sensor consistency audit
 

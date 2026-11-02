@@ -1,17 +1,19 @@
 # HACS publishing status — Salusfy v1.2.2
 
 - Latest published integration release: [v1.2.2](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2), released October 28, 2026.
-- Default HACS catalog request: [hacs/default PR #12460](https://github.com/hacs/default/pull/12460), open as a draft after [changes requested on November 2, 2026](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271).
+- Default HACS catalog request: [hacs/default PR #12460](https://github.com/hacs/default/pull/12460). The November 2, 2026 review requested real-device confirmation for every retained write path; the RT310i and iT500 reports are linked below. See the PR for its current review status.
 - Validated release commit: `0801b96fa73881fcaa85f976db82375697070c2d`.
 - [HACS Validation](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540056): passed.
 - [Hassfest Validation](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540637): passed.
 - [Packaging and Python checks](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540616): passed (90 offline tests).
 
-## Real-device testing evidence and remaining review requirement
+## Real-device testing evidence
 
 **RT310i operation with the supplied v1.2.2 build was successfully confirmed by a real device owner** in [issue #8](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.” The README, changelog, audit and validation notes now link this evidence explicitly.
 
-This report covers RT310i operation, not iT500 hardware or every individual command. The review already accepts the RT310i setpoint/mode scope; the outstanding requirement is to remove every unconfirmed write path from the submitted release or link the relevant iT500 owner confirmation. This includes iT500 zone-two writes and hot-water mode/boost controls. The documentation correction alone does not satisfy that requirement; the PR remains a draft pending the required evidence or code changes and a new release.
+**SALUS iT500, firmware 11.7:** repository maintainer and device owner `Kosztyk` confirmed successful real-device testing of **all implemented controls**, including zone-one and zone-two setpoints, operating modes and scheduled overrides, plus hot-water mode and boost. This confirmation was recorded on November 2, 2026. The [iT500 owner test report](VALIDATION.md#successful-real-device-test-it500) records successful `A85/A88/A89/A92`, `B85/B88/B89/B92`, `C42` and `C43` controls, including the paths specifically raised by the reviewer.
+
+The documentation now records both real-device reports separately from static APK analysis and offline tests. Reviewers can assess the linked confirmations for the retained controls. These reports do not claim universal coverage of other models/firmware; any newly added write path needs its own confirmation.
 
 ## For future releases
 

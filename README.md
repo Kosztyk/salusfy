@@ -10,15 +10,16 @@ Requires Home Assistant 2025.8 or later. **v1.2.2 is published on [GitHub Releas
 
 > Wow, thank you for the fast answer. Works perfect.
 
-This confirms successful RT310i operation reported by a real device owner. It is a general success report, not a command-by-command test log or confirmation of other SALUS models.
+**SALUS iT500, firmware 11.7:** repository maintainer and device owner `Kosztyk` confirmed successful real-device testing of **all implemented controls**, including zone-one and zone-two setpoints, operating modes and scheduled overrides, plus hot-water mode and boost. This confirmation was recorded on November 2, 2026. See the [iT500 owner test report](VALIDATION.md#successful-real-device-test-it500).
 
-| Device / capability | Validation evidence |
+| Device / capability | Successful real-device confirmation |
 | --- | --- |
-| RT310i operation with the supplied v1.2.2 build | Successful real-device owner report linked above |
-| iT500 heating, including zone-two writes | Android APK analysis and offline tests; no iT500 owner confirmation linked here |
-| iT500 hot-water mode and boost writes | Android APK analysis and offline tests; not covered by the RT310i report |
+| RT310i operation with the supplied v1.2.2 build | Independent owner `bthamburg`; [issue #8](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410) |
+| iT500 zone-one setpoint, scheduled override and operating modes (`A85`, `A88`, `A89`, `A92`) | Owner `Kosztyk`; firmware 11.7 |
+| iT500 zone-two setpoint, scheduled override and operating modes (`B85`, `B88`, `B89`, `B92`) | Owner `Kosztyk`; firmware 11.7 |
+| iT500 hot-water Schedule / Once / On / Off (`C42`) and boost (`C43`) | Owner `Kosztyk`; firmware 11.7 |
 
-The iT500 write controls remain implemented in v1.2.2, but must not be described as hardware-tested on the basis of issue #8. The [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271) requires removal of unconfirmed write paths or linked real-device confirmation before acceptance.
+These are real-device owner confirmations, recorded separately from APK analysis and offline automated tests. The iT500 confirmation covers all implemented controls, including the write paths raised in the HACS review. These results apply to the reported devices; other models and firmware are not automatically covered.
 
 ## Installation or upgrade
 
@@ -56,7 +57,7 @@ Polling is every 60 seconds. Temperature and mode commands check acknowledgment 
 
 ## Compatibility limits
 
-**Universal SALUS compatibility is not guaranteed.** The integration discovers every device returned by this **specific Arrayent mobile account**. Devices using other SALUS ecosystems, gateways, local protocols, or cloud services will not appear through this API. Unknown models have read-only status unless they expose the complete A/B thermostat attribute contract checked against the Android apps; a lone setpoint attribute is not sufficient to permit writing. These attribute checks are not proof of physical-device compatibility. **RT310i operation was successfully confirmed by a device owner**, as documented above. iT500 readings and controls have been checked against the Android app and offline protocol tests; issue #8 provides no iT500 hardware confirmation. iT500 hot-water modes and boost are implemented only when the observed Cxx attributes are reported, and still require separate real-device confirmation. The Android apps have additional features that this integration does **not** implement, including editing weekly schedules, holiday settings, frost threshold, energy saving, and changing the gateway's global heat/cool setting. This is not a claim of complete mobile-app feature parity.
+**Universal SALUS compatibility is not guaranteed.** The integration discovers every device returned by this **specific Arrayent mobile account**. Devices using other SALUS ecosystems, gateways, local protocols, or cloud services will not appear through this API. Unknown models have read-only status unless they expose the complete A/B thermostat attribute contract checked against the Android apps; a lone setpoint attribute is not sufficient to permit writing. These attribute checks are not proof of physical-device compatibility. **RT310i operation was successfully confirmed by an independent owner, and all implemented iT500 controls were successfully tested by the maintainer on their SALUS iT500 with firmware 11.7**, as documented above. APK analysis and offline protocol tests provide additional checks. iT500 hot-water modes and boost are exposed only when the relevant Cxx attributes are reported. The Android apps have additional features that this integration does **not** implement, including editing weekly schedules, holiday settings, frost threshold, energy saving, and changing the gateway's global heat/cool setting. This is not a claim of complete mobile-app feature parity.
 
 The legacy heating-history entity IDs are retained for zone one, but their old inconsistent timers are replaced by a shared **estimated relay runtime** tracker. Readings cannot reconstruct historic heating from before the new tracker was installed. For unknown devices with no heating-zone attributes, only the cloud status/capability entity is created. This prevents unrelated products from being misrepresented as thermostats.
 

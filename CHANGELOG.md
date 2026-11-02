@@ -7,7 +7,7 @@
 - Preserve established unique IDs and existing device selection/authentication.
 - All 90 offline tests pass.
 - **RT310i successfully tested by a real device owner:** after installing the supplied v1.2.2 build for the discovery regression in [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
-- This RT310i success report does not confirm iT500 heating, zone-two, hot-water mode or boost write paths; those remain based on APK analysis/offline tests and require their own physical-device evidence.
+- **iT500 real-device confirmation recorded November 2, 2026:** maintainer/device owner `Kosztyk` confirmed successful testing of all implemented controls on **SALUS iT500 firmware 11.7**, including zone-one and zone-two setpoints/modes/overrides, hot-water mode (`C42`) and boost (`C43`). See the [owner test report](VALIDATION.md#successful-real-device-test-it500). APK analysis/offline tests and real-device owner reports are separate evidence.
 
 # Changelog
 

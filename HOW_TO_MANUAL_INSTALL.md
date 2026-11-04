@@ -1,6 +1,6 @@
-# Salusfy v1.2.2 — Manual installation / upgrade
+# Salusfy v1.2.3 — Manual installation / upgrade
 
-This guide covers the published **Salusfy v1.2.2** release, including native device grouping and battery status. Download the [official v1.2.2 GitHub release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
+This guide covers **Salusfy v1.2.3**, retaining v1.2.2 device grouping, battery status and controls while correcting the published documentation. Download the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
 
 ## 1. Back up your existing installation
 
@@ -10,7 +10,7 @@ This guide covers the published **Salusfy v1.2.2** release, including native dev
 
 ## 2. Copy the integration files
 
-1. Download **Source code (zip)** from the [v1.2.2 release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2) and extract it on your computer. If you already have the standalone `salusfy-1.2.2-device-ui-integration.zip`, that package works as well.
+1. Download **Source code (zip)** from the [latest release](https://github.com/Kosztyk/salusfy/releases/latest) and extract it on your computer. If you already have the standalone `salusfy-1.2.2-device-ui-integration.zip`, that package works as well.
 2. Find the folder `custom_components/salus` inside the extracted archive.
 3. In Home Assistant, open File Editor, Studio Code Server, Samba, or the SSH terminal.
 4. Copy the entire **`salus`** folder to `/config/custom_components/salus/`, overwriting the old files. The final path must look like this:
@@ -92,6 +92,6 @@ Restore the old `/config/custom_components/salus/` folder from the backup and re
 
 ## Scope of validation
 
-This v1.2.2 build was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. **A real RT310i owner also confirmed successful operation:** after installing the supplied v1.2.2 build for [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
+The v1.2.3 release retains the v1.2.2 integration implementation, which was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. **A real RT310i owner also confirmed successful operation:** after installing the supplied v1.2.2 build for [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
 
 **SALUS iT500, firmware 11.7:** repository maintainer and device owner `Kosztyk` confirmed successful real-device testing of **all implemented controls**, including zone-one and zone-two setpoints, operating modes and scheduled overrides, plus hot-water mode and boost. This confirmation was recorded on November 2, 2026. The [validation notes](VALIDATION.md#successful-real-device-test-it500) record the successful setpoint/mode/override, zone-two, hot-water mode and boost paths explicitly. The RT310i and iT500 reports are separate real-device evidence in addition to the offline tests. Existing basic controls and historical entity identifiers have been kept; these confirmations do not imply that every SALUS model or firmware has been tested.

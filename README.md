@@ -1,8 +1,8 @@
 # Salusfy — SALUS Cloud integration for Home Assistant
 
-Unofficial Home Assistant integration for SALUS devices registered with the **SALUS/Arrayent mobile cloud**, including **iT500** and **RT310i**. Version **1.2.2** removes the old hard-coded iT500 device-type filter and uses the device's actual numeric type ID when retrieving its attributes. The retired `salus-it500.com` website is not used.
+Unofficial Home Assistant integration for SALUS devices registered with the **SALUS/Arrayent mobile cloud**, including **iT500** and **RT310i**. Version **1.2.3** retains the v1.2.2 functionality, incorporates documented real-device confirmation and clarifies code provenance. The v1.2.2 implementation removes the old hard-coded iT500 device-type filter and uses the device's actual numeric type ID when retrieving its attributes. The retired `salus-it500.com` website is not used.
 
-Requires Home Assistant 2025.8 or later. **v1.2.2 is published on [GitHub Releases](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.2).** Inclusion in the default HACS catalog is pending review of [PR #12460](https://github.com/hacs/default/pull/12460); until it is merged, install it using a HACS custom repository or the manual instructions below.
+Requires Home Assistant 2025.8 or later. **Installation builds are published on [GitHub Releases](https://github.com/Kosztyk/salusfy/releases/latest); v1.2.3 is the documentation/provenance correction release.** Inclusion in the default HACS catalog is pending review of [PR #12460](https://github.com/hacs/default/pull/12460); until it is merged, install it using a HACS custom repository or the manual instructions below.
 
 ## Confirmed real-device testing
 
@@ -61,6 +61,14 @@ Polling is every 60 seconds. Temperature and mode commands check acknowledgment 
 
 The legacy heating-history entity IDs are retained for zone one, but their old inconsistent timers are replaced by a shared **estimated relay runtime** tracker. Readings cannot reconstruct historic heating from before the new tracker was installed. For unknown devices with no heating-zone attributes, only the cloud status/capability entity is created. This prevents unrelated products from being misrepresented as thermostats.
 
+## Code provenance, upstream relationship, and licensing
+
+This GitHub repository is historically a **fork of [floringhimie/salusfy](https://github.com/floringhimie/salusfy)**. That upstream repository has **no declared software license**, so its source code cannot simply be treated as MIT-licensed. The old upstream integration used the `salus-it500.com` PHP website and a YAML `climate: - platform: salusfy` implementation. **No substantive source code from its original `custom_components/salusfy/climate.py`, nor its old website login/parsing/write implementation, is retained in the current installable `custom_components/salus/` integration.** Short generic Home Assistant property/method names, configuration terms, and the display name are common interface conventions, not retained upstream logic. The upstream `README.md` and manifest are also not shipped unchanged.
+
+The current integration uses an async Arrayent mobile-cloud implementation. Its `custom_components/salus/api.py` is **adapted from [ZaBug/salus-it500](https://github.com/ZaBug/salus-it500)**, which is MIT-licensed; the original ZaBug notice is bundled in [`custom_components/salus/third_party/ZaBug-LICENSE.txt`](custom_components/salus/third_party/ZaBug-LICENSE.txt). The other shipped integration implementation, capability logic, Home Assistant entities, tests and documentation were developed/reworked for this project, rather than copied from the unlicensed `floringhimie` implementation. The project's MIT license applies to the current project's contribution and the separately MIT-licensed client; **it is not a retroactive license grant for upstream `floringhimie` commits or code**. GitHub retains the fork ancestry as historical attribution.
+
+See [SOURCE_PROVENANCE.md](SOURCE_PROVENANCE.md) for a file-by-file comparison and the precise licensing boundary.
+
 ## Validation
 
-Run `PYTHONPATH=tests python3 -m unittest discover -s tests -v` and `python3 tools/check_repository.py`. For test methodology see [VALIDATION.md](VALIDATION.md). The package includes its original MIT license and attribution to the upstream Arrayent client.
+Run `PYTHONPATH=tests python3 -m unittest discover -s tests -v` and `python3 tools/check_repository.py`. For test methodology see [VALIDATION.md](VALIDATION.md). The repository contains an MIT license for the current implementation and retains the MIT notice from the Arrayent client used by `api.py`. The original `floringhimie/salusfy` repository has no declared license; see the [source comparison and licensing scope](SOURCE_PROVENANCE.md).

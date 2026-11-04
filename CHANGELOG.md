@@ -1,3 +1,10 @@
+## 1.2.3 — release synchronization and source provenance (2026-11-04)
+
+- Ship the real-device iT500 firmware 11.7 confirmation already documented on `main` after v1.2.2 was tagged; include zone-one (`A85/A88/A89/A92`), zone-two (`B85/B88/B89/B92`), hot-water mode (`C42`) and boost (`C43`). The RT310i owner report remains separately linked.
+- Distinguish successful owner-reported hardware operation from automated offline tests, APK research and unavailable raw protocol captures.
+- Audit current source against the unlicensed original `floringhimie/salusfy` repository. Document that no substantive original implementation remains in the installable integration and clarify MIT-licensed `ZaBug/salus-it500` client attribution.
+- Update HACS release/validation guidance to match what new installs download. No functional thermostat behavior is changed from v1.2.2.
+
 ## 1.2.2 — device UI, multi-model compatibility and sensor audit (2026-10-28)
 
 - Register one native Home Assistant SALUS device per configured cloud device; group its controls and readings, and use concise entity names.

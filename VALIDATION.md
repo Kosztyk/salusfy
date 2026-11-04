@@ -1,4 +1,4 @@
-# Validation notes — 1.2.2
+# Validation notes — 1.2.3
 
 Run these checks in the project root (Python 3.12+, aiohttp installed):
 
@@ -15,6 +15,10 @@ Attributes and command paths were cross-checked against the supplied **RT310i 2.
 **Offline testing limits:** All HTTP and Home Assistant behavior in the automated suite is simulated. The suite is **not** a live account test or firmware acceptance test. Separate successful real-device owner reports for RT310i and iT500 firmware 11.7 are documented below. Those reports are distinct from the automated suite. The published v1.2.2 release commit (`0801b96fa73881fcaa85f976db82375697070c2d`) passed the [HACS](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540056), [Hassfest](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540637), and [packaging/Python](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540616) GitHub jobs.
 
 Security: Never include credentials or account/device identifiers in shared issue reports. The cloud API requires MD5 credentials for its legacy protocol; the integration keeps credentials in Home Assistant's config entry and does not log them.
+
+## v1.2.3 release scope and prior validation
+
+The v1.2.3 release includes the documentation corrections and source-provenance disclosure missing from the tagged v1.2.2 archive. Thermostat behavior remains unchanged. The historical v1.2.2 CI checks listed above are not a claim that the new commit has already passed CI; new release validation must be checked on GitHub Actions.
 
 ## v1.2.2 release validation
 
@@ -43,4 +47,4 @@ In [issue #8 — “Do not work with RT310i anymore”](https://github.com/Koszt
 | Hot-water Schedule / Once / On / Off | `C42` | Successful |
 | Hot-water boost | `C43` | Successful |
 
-This records the maintainer/device owner's explicit confirmation, including all write paths raised in the [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271). It is real-device feedback in addition to APK analysis and offline tests. No raw protocol captures are attached to this report; automated-test results are not presented as hardware tests. The confirmation applies to the owner's reported iT500 firmware 11.7 setup and is not a claim that every SALUS device or firmware has been tested.
+This records the maintainer/device owner's explicit confirmation, including all write paths raised in the [HACS review](https://github.com/hacs/default/pull/12460#pullrequestreview-5737333271). It is real-device feedback in addition to APK analysis and offline tests. No raw protocol captures or per-command acknowledgment/readback logs are attached to this report; automated-test results are not presented as hardware tests. The confirmation applies to the owner's reported iT500 firmware 11.7 setup and is not a claim that every SALUS device or firmware has been tested.

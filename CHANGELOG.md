@@ -1,3 +1,10 @@
+## 1.2.4 — unique integration domain and migration guidance (2026-11-05)
+
+- Rename the **Home Assistant integration domain** from `salus` to **`salus_cloud_native`** and relocate the complete integration package to `custom_components/salus_cloud_native/`, resolving the HACS catalog collision with `homeassistant_salus`.
+- Change the UI integration display name to **Salus Cloud Native** and update the manifest, constants, HACS metadata, packaging/test helpers and release workflow together.
+- Document the breaking config-entry domain migration, the new device-registry namespace, legacy unique-ID string behavior and possible entity-ID changes. No automatic migration of entity registrations, dashboards, automations or historic statistics is claimed.
+- Preserve the same Arrayent client, setpoint/mode/hot-water controls and real-device evidence from v1.2.3. No thermostat write payloads changed.
+
 ## 1.2.3 — release synchronization and source provenance (2026-11-04)
 
 - Ship the real-device iT500 firmware 11.7 confirmation already documented on `main` after v1.2.2 was tagged; include zone-one (`A85/A88/A89/A92`), zone-two (`B85/B88/B89/B92`), hot-water mode (`C42`) and boost (`C43`). The RT310i owner report remains separately linked.

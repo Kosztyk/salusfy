@@ -1,20 +1,24 @@
-# Validation notes — 1.2.3
+# Validation notes — 1.2.4
 
 Run these checks in the project root (Python 3.12+, aiohttp installed):
 
 ```sh
 python3 tools/check_repository.py
 python3 -m unittest discover -s tests -v
-python3 -m compileall -q custom_components/salus
+python3 -m compileall -q custom_components/salus_cloud_native
 ```
 
-The 90 tests exercise Arrayent authentication and token renewal, namespace-aware XML parsing, discovery without a device type whitelist (including SRT), device-specific `deviceTypeId` in read requests, account/device selection and reauth, iT500 and RT310i zone attributes, A93 manual setpoint display behavior, zone-two control routing, schedule override A88 behavior, server acknowledgment/readback, command failure, and safe refusal of unknown-device controls.
+The 93 tests (including three domain-migration regressions) exercise Arrayent authentication and token renewal, namespace-aware XML parsing, discovery without a device type whitelist (including SRT), device-specific `deviceTypeId` in read requests, account/device selection and reauth, iT500 and RT310i zone attributes, A93 manual setpoint display behavior, zone-two control routing, schedule override A88 behavior, server acknowledgment/readback, command failure, and safe refusal of unknown-device controls.
 
 Attributes and command paths were cross-checked against the supplied **RT310i 2.2.1** and **iT500 Plus 2.2.1** Android APKs. The iT500 APK's `HeatZone.getDeviceRunningMode` and `SalusDevice.setDeviceMode` clarify mode precedence and state clearing. Both `HeatingActivity.sendF` methods use `F=1`. The iT500 constants identify S06 topology, S05 heating/cooling status, C42 hot-water values, and C43 0–3-hour boost. The new tests exercise these cases as well as the corrected state decoder. The Arrayent public API specifies `deviceTypeId` for `getDeviceAttributesWithValues`. The Android app's normal setpoint request writes A85 plus A88 in scheduled mode; it does not directly write A93 in that path.
 
 **Offline testing limits:** All HTTP and Home Assistant behavior in the automated suite is simulated. The suite is **not** a live account test or firmware acceptance test. Separate successful real-device owner reports for RT310i and iT500 firmware 11.7 are documented below. Those reports are distinct from the automated suite. The published v1.2.2 release commit (`0801b96fa73881fcaa85f976db82375697070c2d`) passed the [HACS](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540056), [Hassfest](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540637), and [packaging/Python](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540616) GitHub jobs.
 
 Security: Never include credentials or account/device identifiers in shared issue reports. The cloud API requires MD5 credentials for its legacy protocol; the integration keeps credentials in Home Assistant's config entry and does not log them.
+
+## v1.2.4 domain migration validation
+
+The v1.2.4 change renames the package, manifest domain, code constant, device-registry namespace, HACS metadata and release paths; it leaves thermostat command payloads unchanged. The three added regression tests assert the new module directory/manifest/constant agreement, device identifiers, and documented migration. HACS and Hassfest must be checked on the published v1.2.4 commit. Offline tests do not automatically validate Home Assistant registry migrations on installed systems.
 
 ## v1.2.3 release scope and prior validation
 

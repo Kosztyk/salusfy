@@ -10,16 +10,16 @@ ROOT=Path(__file__).resolve().parents[1]
 def validate(root=ROOT):
     errors=[]
     for filename in ("README.md","LICENSE.txt","hacs.json","docs/licenta-originala-ro.md",
-                     ".github/workflows/validate.yml","custom_components/salus/__init__.py",
-                     "custom_components/salus/manifest.json","custom_components/salus/brand/icon.png"):
+                     ".github/workflows/validate.yml","custom_components/salus_cloud_native/__init__.py",
+                     "custom_components/salus_cloud_native/manifest.json","custom_components/salus_cloud_native/brand/icon.png"):
         if not (root/filename).is_file(): errors.append(f"Missing: {filename}")
     root_components=root/"custom_components"
-    if root_components.is_dir() and [p.name for p in root_components.iterdir() if p.is_dir()]!=["salus"]:
+    if root_components.is_dir() and [p.name for p in root_components.iterdir() if p.is_dir()]!=["salus_cloud_native"]:
         errors.append("Unexpected custom_components directory")
-    manifest_file=root/"custom_components/salus/manifest.json"
+    manifest_file=root/"custom_components/salus_cloud_native/manifest.json"
     if manifest_file.is_file():
         m=json.loads(manifest_file.read_text())
-        if m.get("domain")!="salus" or m.get("version")!="1.2.3":
+        if m.get("domain")!="salus_cloud_native" or m.get("version")!="1.2.4":
             errors.append("Incorrect domain/version")
         if m.get("codeowners")!=["@Kosztyk"]:
             errors.append("Missing correct codeowner")
@@ -27,6 +27,14 @@ def validate(root=ROOT):
             errors.append("Manifest order invalid")
         if not re.fullmatch(r"\d+\.\d+\.\d+",str(m.get("version",""))):
             errors.append("Invalid version")
+    # Prevent accidental reintroduction of a conflicting folder or a non-importable domain.
+    if (root / "custom_components/salus").exists():
+        errors.append("Conflicting legacy salus integration folder still present")
+    if manifest_file.is_file():
+        import importlib.util
+        domain = json.loads(manifest_file.read_text()).get("domain", "")
+        if not domain.isidentifier() or "-" in domain:
+            errors.append("Home Assistant integration domain must be a Python identifier")
     license_file=root/"LICENSE.txt"
     if license_file.is_file() and not license_file.read_text().startswith("MIT License"):
         errors.append("MIT license text not standardized")

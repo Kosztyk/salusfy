@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = "salus_under_test"
 if PACKAGE not in sys.modules:
     package = ModuleType(PACKAGE)
-    package.__path__ = [str(ROOT / "custom_components/salus")]
+    package.__path__ = [str(ROOT / "custom_components/salus_cloud_native")]
     sys.modules[PACKAGE] = package
 
 

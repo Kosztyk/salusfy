@@ -28,13 +28,13 @@ jobs:
           set -euo pipefail
           CURRENT_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
           [[ "$CURRENT_SHA" == "$VALIDATED_SHA" ]] || exit 0
-          VERSION="$(python -c 'import json; print(json.load(open("custom_components/salus/manifest.json"))["version"])')"
-          [[ "$VERSION" == "1.2.3" ]] || exit 0
+          VERSION="$(python -c 'import json; print(json.load(open("custom_components/salus_cloud_native/manifest.json"))["version"])')"
+          [[ "$VERSION" == "1.2.4" ]] || exit 0
           if gh release view "v$VERSION" >/dev/null 2>&1; then
             echo "Release already exists"; exit 0
           fi
           gh release create "v$VERSION" \
             --target "$VALIDATED_SHA" \
             --title "Salusfy v$VERSION" \
-            --notes-file RELEASE_NOTES_1.2.3.md \
+            --notes-file RELEASE_NOTES_1.2.4.md \
             --latest

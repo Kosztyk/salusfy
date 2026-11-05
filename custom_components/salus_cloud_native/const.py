@@ -1,6 +1,6 @@
 """Constants for the SALUS mobile cloud integration."""
 
-DOMAIN = "salus"
+DOMAIN = "salus_cloud_native"
 DEFAULT_NAME = "Salus Thermostat"
 DEFAULT_SCAN_INTERVAL = 60
 MIN_TEMP = 5.0

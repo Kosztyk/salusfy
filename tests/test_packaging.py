@@ -13,7 +13,7 @@ class TestPackaging(unittest.TestCase):
         self.assertEqual(mod.validate(ROOT),[])
     def test_manifest_domain(self):
         import json
-        manifest=json.loads((ROOT/"custom_components/salus/manifest.json").read_text())
-        self.assertEqual(manifest["domain"],"salus")
-        self.assertEqual(manifest["version"],"1.2.3")
+        manifest=json.loads((ROOT/"custom_components/salus_cloud_native/manifest.json").read_text())
+        self.assertEqual(manifest["domain"],"salus_cloud_native")
+        self.assertEqual(manifest["version"],"1.2.4")
 if __name__=="__main__":unittest.main()

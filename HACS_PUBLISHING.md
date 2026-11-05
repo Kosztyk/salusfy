@@ -1,11 +1,11 @@
-# HACS publishing status — Salusfy v1.2.3
+# HACS publishing status — Salusfy v1.2.4
 
-- Release prepared: **v1.2.3**; follow the [GitHub Releases page](https://github.com/Kosztyk/salusfy/releases/latest) for the published artifact. This documentation-only release includes the iT500 owner confirmation and source-provenance disclosure missing from the older v1.2.2 release.
-- Default HACS catalog request: [hacs/default PR #12460](https://github.com/hacs/default/pull/12460). The November 2, 2026 review requested real-device confirmation for every retained write path; the RT310i and iT500 reports are linked below. See the PR for its current review status.
-- Previous validated release: **v1.2.2**, commit `0801b96fa73881fcaa85f976db82375697070c2d`. The validation links immediately below belong to that older build; v1.2.3 receives fresh checks through GitHub Actions.
-- [HACS Validation](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540056): passed.
-- [Hassfest Validation](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540637): passed.
-- [Packaging and Python checks](https://github.com/Kosztyk/salusfy/actions/runs/40739951685/job/122998540616): passed (90 offline tests).
+- **New HACS domain:** `salus_cloud_native`, installation path `custom_components/salus_cloud_native/`, display name **Salus Cloud Native**.
+- **Why:** [Frenck's domain collision review](https://github.com/hacs/default/pull/12460#pullrequestreview-5777744377) identified that the old domain `salus` conflicts with the separate default-catalog `homeassistant_salus` integration.
+- **New release:** [v1.2.4](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.4) (only after CI validates and publishes it). Validation URLs for v1.2.3 do **not** demonstrate that v1.2.4 passed.
+- **Previous validated version:** [v1.2.3](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.3), [HACS](https://github.com/Kosztyk/salusfy/actions/runs/41801908938/job/126479466012), [Hassfest](https://github.com/Kosztyk/salusfy/actions/runs/41801908938/job/126479465741), [packaging](https://github.com/Kosztyk/salusfy/actions/runs/41801908938/job/126479466066).
+- **PR:** [hacs/default #12460](https://github.com/hacs/default/pull/12460). Update PR links once v1.2.4 checks and release exist, then mark the draft ready for review as requested.
+- **Existing installations:** See [README migration instructions](README.md#existing-salus-installations--required-manual-migration). The new domain does not automatically migrate old `salus` entries or preserve registry associations.
 
 ## Real-device testing evidence
 
@@ -17,7 +17,7 @@ The documentation now records both real-device reports separately from static AP
 
 ## For future releases
 
-1. Update `custom_components/salus/manifest.json`, changelog, release notes and the release workflow's permitted version.
+1. Update `custom_components/salus_cloud_native/manifest.json`, changelog, release notes and the release workflow's permitted version.
 2. Validate locally (Python 3.12+ and `aiohttp`) and push the changes to `main`.
 3. Confirm HACS, Hassfest, and the packaging/test jobs all succeed on the release commit, with no ignored checks.
 4. Publish a GitHub release from that exact validated commit.

@@ -39,7 +39,7 @@ class TestDeviceRegistry(unittest.TestCase):
     def test_stable_identifiers_and_cloud_name(self):
         c = coordinator()
         info = device.salus_device_info(c)
-        self.assertEqual(info["identifiers"], {("salus", "STA123")})
+        self.assertEqual(info["identifiers"], {("salus_cloud_native", "STA123")})
         self.assertEqual(info["name"], "Living Room")
         self.assertEqual(info["manufacturer"], "SALUS Controls")
         self.assertEqual(info["model"], "iT500 family")
@@ -59,7 +59,7 @@ class TestDeviceRegistry(unittest.TestCase):
                     sensor.SalusBatteryStatusSensor(c), binary.SalusBatteryLowBinarySensor(c)]
         for entity in entities:
             device.link_entity(entity, c)
-            self.assertEqual(entity._attr_device_info["identifiers"], {("salus", "STA123")})
+            self.assertEqual(entity._attr_device_info["identifiers"], {("salus_cloud_native", "STA123")})
 
 
 class TestBatteryFromAPK(unittest.TestCase):
@@ -162,7 +162,7 @@ class TestEntitySetup(unittest.IsolatedAsyncioTestCase):
         root = SimpleNamespace(entries=[], async_get_entity_id=lambda *args: None)
         hass = SimpleNamespace(
             registry=root,
-            data={"salus": {"entry": {"coordinator": c, "device": c.device, "name": "Salus Thermostat"}}},
+            data={"salus_cloud_native": {"entry": {"coordinator": c, "device": c.device, "name": "Salus Thermostat"}}},
         )
         entry = SimpleNamespace(entry_id="entry")
         for platform in (sensor, binary):
@@ -170,7 +170,7 @@ class TestEntitySetup(unittest.IsolatedAsyncioTestCase):
             await platform.async_setup_entry(hass, entry, lambda entities: created.extend(entities))
             self.assertGreaterEqual(len(created), 3)
             for entity in created:
-                self.assertEqual(entity._attr_device_info["identifiers"], {("salus", "STA123")})
+                self.assertEqual(entity._attr_device_info["identifiers"], {("salus_cloud_native", "STA123")})
                 self.assertTrue(getattr(entity, "_attr_has_entity_name", False))
         self.assertEqual(binary.SalusFrostProtectionBinarySensor(c).is_on, True)
 
@@ -181,11 +181,11 @@ class TestEntitySetup(unittest.IsolatedAsyncioTestCase):
         c.zones = ()
         hass = SimpleNamespace(
             registry=SimpleNamespace(entries=[], async_get_entity_id=lambda *args: None),
-            data={"salus": {"entry": {"coordinator": c, "device": c.device, "name": "Salus Thermostat"}}},
+            data={"salus_cloud_native": {"entry": {"coordinator": c, "device": c.device, "name": "Salus Thermostat"}}},
         )
         created = []
         await sensor.async_setup_entry(hass, SimpleNamespace(entry_id="entry"),
                                        lambda entities: created.extend(entities))
         self.assertEqual(len(created), 1)
         self.assertEqual(created[0].native_value, "online")
-        self.assertEqual(created[0]._attr_device_info["identifiers"], {("salus", "unknown999")})
+        self.assertEqual(created[0]._attr_device_info["identifiers"], {("salus_cloud_native", "unknown999")})

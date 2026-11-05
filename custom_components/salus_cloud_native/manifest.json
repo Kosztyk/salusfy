@@ -1,6 +1,6 @@
 {
-  "domain": "salus",
-  "name": "Salus thermostat",
+  "domain": "salus_cloud_native",
+  "name": "Salus Cloud Native",
   "codeowners": [
     "@Kosztyk"
   ],
@@ -17,5 +17,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Kosztyk/salusfy/issues",
   "requirements": [],
-  "version": "1.2.3"
+  "version": "1.2.4"
 }

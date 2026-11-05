@@ -1,58 +1,45 @@
-# Salusfy v1.2.3 — Manual installation / upgrade
+# Salusfy v1.2.4 — Manual installation / domain migration
 
-This guide covers **Salusfy v1.2.3**, retaining v1.2.2 device grouping, battery status and controls while correcting the published documentation. Download the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
+This guide covers **Salusfy v1.2.4**, retaining v1.2.3 controls but changing its integration domain to avoid another HACS integration. The change requires explicit reconfiguration for previous `salus` installations. Download the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
 
-## 1. Back up your existing installation
+## 1. Back up your installation
 
-1. In Home Assistant, create a backup under **Settings → System → Backups**.
-2. If you already use Salusfy, optionally copy `/config/custom_components/salus/` somewhere safe.
-3. Do **not** remove the Salus integration from **Settings → Devices & services**: doing so can remove entity registrations and break existing dashboards/automations.
+1. Make a full backup under **Settings → System → Backups**.
+2. Record your current Salusfy `salus` config-entry devices, entity IDs, custom names, dashboards, automations and statistics consumers; preserve a copy of the old folder if it is owned by Salusfy.
+3. Download the [v1.2.4 release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.4). **Do not use the standalone v1.2.2 ZIP** for this migration: it installs the conflicting legacy `salus` folder.
 
-## 2. Copy the integration files
+## 2. Install the new domain
 
-1. Download **Source code (zip)** from the [latest release](https://github.com/Kosztyk/salusfy/releases/latest) and extract it on your computer. If you already have the standalone `salusfy-1.2.2-device-ui-integration.zip`, that package works as well.
-2. Find the folder `custom_components/salus` inside the extracted archive.
-3. In Home Assistant, open File Editor, Studio Code Server, Samba, or the SSH terminal.
-4. Copy the entire **`salus`** folder to `/config/custom_components/salus/`, overwriting the old files. The final path must look like this:
+The package to install is **`custom_components/salus_cloud_native/`**. In Home Assistant the destination must be:
 
-   ```text
-   /config/
-   └── custom_components/
-       └── salus/
-           ├── __init__.py
-           ├── manifest.json
-           ├── api.py
-           ├── climate.py
-           ├── sensor.py
-           ├── binary_sensor.py
-           ├── device.py
-           ├── runtime.py
-           ├── coordinator.py
-           └── ...
-   ```
-
-   **Do not** put the extracted `custom_components` folder inside another `custom_components` folder.
-
-5. Restart **Home Assistant** from **Settings → System → Restart**. A simple integration reload may not reload modified Python modules.
-
-### Optional SSH installation
-
-The following command applies **only** to the standalone `salusfy-1.2.2-device-ui-integration.zip` (which contains `custom_components/salus/` at the ZIP root). For the GitHub **Source code (zip)** download, extract its top-level repository folder first and copy the nested `custom_components/salus/` into `/config/custom_components/salus/` instead. After uploading the standalone ZIP to `/config/`, run:
-
-```sh
-cd /config
-unzip -o salusfy-1.2.2-device-ui-integration.zip 'custom_components/salus/*'
+```text
+/config/custom_components/salus_cloud_native/
+    __init__.py
+    api.py
+    climate.py
+    config_flow.py
+    const.py
+    manifest.json
+    sensor.py
+    ...
 ```
 
-Restart Home Assistant afterward. Do not run `unzip` in the ZIP archive's own folder unless the extraction path is correct.
+Either update this repository through HACS (custom repository until approved) or extract its GitHub release source ZIP and copy the entire `custom_components/salus_cloud_native` directory to `/config/custom_components/`. **Do not** nest `custom_components` inside itself. Restart Home Assistant to load the new Python package.
 
-## 3. Verify the devices and entities
+## 3. Existing `salus` to `salus_cloud_native` migration
 
-1. Open **Settings → Devices & services → Integrations**.
-2. Open **Salus thermostat**, then select the **device** named in your SALUS mobile app. The integration now registers a Home Assistant device for the selected cloud device.
-3. The device page should group its **Controls**, **Sensors**, **Binary sensors**, and supported hot-water entities. The primary climate entity uses the cloud device name; other entity names are concise.
-4. Existing entity IDs/unique IDs are retained where possible. If a previously configured entity was manually renamed, Home Assistant normally keeps your custom entity ID and name.
-5. If your account contains multiple SALUS cloud devices, use **Add integration → Salus thermostat** again for each additional physical device. This version creates one Home Assistant device per configured SALUS cloud device; it does not automatically add all devices in a single account entry.
+Changing an integration's domain is a breaking configuration change: Home Assistant does not automatically rewrite existing `salus` entries. The existing `custom_components/salus` directory also collides with the independently published `homeassistant_salus` integration.
+
+1. Before making changes, keep your Home Assistant backup. Note the existing entity IDs and the dashboards, automations and long-term statistics that rely on them.
+2. Install `salus_cloud_native` as above and restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration → Salus Cloud Native**. Enter the same SALUS mobile-cloud credentials and choose the same physical device; repeat for each device/account previously configured.
+4. Verify the new climate, sensor, binary sensor, hot-water controls (where supported) and device grouping. Do not run both sets of thermostat-control automations simultaneously.
+5. Delete the **old Salusfy `salus` config entry** from Devices & services after confirming the new entry works. Remove only an old `salus` integration folder known to belong to Salusfy. **Never delete another integration's `custom_components/salus` folder.** Restart Home Assistant.
+6. Review/rename the new entity IDs after the old IDs are freed, then update dashboard cards, scripts, automation actions, history/recorder queries and energy/statistics references as needed.
+
+**ID compatibility:** the code retains the device's cloud ID and the existing `unique_id` string formulas; however, the platform/integration domain and config entry are new. The device registry identifiers change from `("salus", device_id)` to `("salus_cloud_native", device_id)`, so Home Assistant creates a distinct device registry identity. The generated entity IDs can acquire `_2` suffixes while old entities remain. Previous entity ID assignments and historical statistics are not automatically migrated. Do **not** edit `.storage/core.config_entries` or `.storage/core.entity_registry` manually.
+
+For entirely new installations, just install the new folder, restart Home Assistant, and add **Salus Cloud Native** once per cloud device.
 
 ## 4. What you should see
 
@@ -81,17 +68,17 @@ Depending on the attributes actually returned by your particular thermostat:
 ## 5. RT310i missing or controls unavailable?
 
 - Confirm the thermostat is still visible in the official SALUS mobile app and in the account used for Home Assistant.
-- Open the integration's **Configure** / **Reconfigure** flow and select the correct device if several are registered.
+- Open **Salus Cloud Native** integration's **Configure** / **Reconfigure** flow and select the correct device if several are registered.
 - Confirm Internet connectivity and try **Reload** under the integration's three-dot menu.
 - Look at **Settings → System → Logs** for messages containing `salus`.
 - Only devices using the supported SALUS/Arrayent mobile cloud are discoverable; unknown control attribute sets remain read-only for safety.
 
 ## 6. Rollback
 
-Restore the old `/config/custom_components/salus/` folder from the backup and restart Home Assistant. Do not delete the integration entry unless you intentionally want to reconfigure it. If you need to verify a bug report, include the model family, Home Assistant version, the integration logs with credentials removed, and the observed entity states. Never publish your SALUS account password, security tokens, or device identifiers publicly.
+To roll back, restore your full Home Assistant backup and previous Salusfy `salus` package/config entry together, or reinstall a known working older release and re-add its legacy entry. **Do not overwrite or delete another integration that uses `custom_components/salus/`.** Undo any entity-ID/dashboard changes separately if required. When reporting issues, include model and Home Assistant versions and redacted logs; never share account passwords, tokens or device identifiers.
 
 ## Scope of validation
 
-The v1.2.3 release retains the v1.2.2 integration implementation, which was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. **A real RT310i owner also confirmed successful operation:** after installing the supplied v1.2.2 build for [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
+The v1.2.4 release retains the v1.2.3 control implementation, which was checked statically against the uploaded **iT500 Plus 2.2.1** and **RT310i 2.2.1** Android apps, and with offline integration regression tests. **A real RT310i owner also confirmed successful operation:** after installing the supplied v1.2.2 build for [issue #8](https://github.com/Kosztyk/salusfy/issues/8), `bthamburg` [reported on October 28, 2026](https://github.com/Kosztyk/salusfy/issues/8#issuecomment-6474946410): “Wow, thank you for the fast answer. Works perfect.”
 
 **SALUS iT500, firmware 11.7:** repository maintainer and device owner `Kosztyk` confirmed successful real-device testing of **all implemented controls**, including zone-one and zone-two setpoints, operating modes and scheduled overrides, plus hot-water mode and boost. This confirmation was recorded on November 2, 2026. The [validation notes](VALIDATION.md#successful-real-device-test-it500) record the successful setpoint/mode/override, zone-two, hot-water mode and boost paths explicitly. The RT310i and iT500 reports are separate real-device evidence in addition to the offline tests. Existing basic controls and historical entity identifiers have been kept; these confirmations do not imply that every SALUS model or firmware has been tested.

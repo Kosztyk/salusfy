@@ -2,7 +2,7 @@
 
 Unofficial Home Assistant integration for SALUS devices registered with the **SALUS/Arrayent mobile cloud**, including **iT500** and **RT310i**. Version **1.2.4** retains the tested v1.2.3 functionality while using the distinct Home Assistant integration domain `salus_cloud_native` (display name **Salus Cloud Native**). The v1.2.2 implementation removes the old hard-coded iT500 device-type filter and uses the device's actual numeric type ID when retrieving its attributes. The retired `salus-it500.com` website is not used.
 
-Requires Home Assistant 2025.8 or later. **Installation builds are published on [GitHub Releases](https://github.com/Kosztyk/salusfy/releases/latest); v1.2.4 is the HACS domain-collision correction release.** Inclusion in the default HACS catalog is pending review of [PR #12460](https://github.com/hacs/default/pull/12460); until it is merged, install it using a HACS custom repository or the manual instructions below.
+Requires Home Assistant 2025.8 or later.
 
 ## Confirmed real-device testing
 
@@ -23,11 +23,25 @@ These are real-device owner confirmations, recorded separately from APK analysis
 
 ## Installation or upgrade
 
-**New integration domain:** `salus_cloud_native` (with underscores, as required for Home Assistant integration identifiers). The new integration folder is `custom_components/salus_cloud_native/`, and the name shown in Home Assistant is **Salus Cloud Native**. The repository name remains `Kosztyk/salusfy`. This avoids overwriting the unrelated `homeassistant_salus` integration, which also uses `custom_components/salus/`.
+### HACS installation (recommended)
 
-For a fresh manual installation, copy the entire `custom_components/salus_cloud_native/` directory from this repository into `/config/custom_components/salus_cloud_native/`, then restart Home Assistant. In HACS, install or update this repository, restart Home Assistant and add **Salus Cloud Native** under **Settings → Devices & services → Add integration**. For new accounts, use the login for the relevant SALUS mobile app. Leave **Device ID** blank for discovery or select a registered device.
+If you're upgrading from the legacy `salus` domain, start with the [migration steps](#existing-salus-installations--required-manual-migration).
+
+1. Open **HACS** in Home Assistant and search the default catalog for **Salus Cloud Native**.
+2. Open the listing and select **Download** for a new installation. To upgrade an existing installation, apply the update through HACS.
+3. Restart Home Assistant.
+
+### Manual installation
+
+Download the source ZIP from the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest) and follow the [manual installation guide](HOW_TO_MANUAL_INSTALL.md#2-install-the-new-domain).
+
+### Configure in Home Assistant
+
+Go to **Settings → Devices & services → Add integration** and select **Salus Cloud Native**. Use the account for your SALUS mobile app. Leave **Device ID** blank for discovery or select a registered device.
 
 ### Existing `salus` installations — required manual migration
+
+The integration moved to `custom_components/salus_cloud_native/` to avoid a file conflict with `homeassistant_salus`, which uses `custom_components/salus/`. The repository is `Kosztyk/salusfy`.
 
 **The domain change is a breaking configuration migration.** Home Assistant stores the integration domain with each configuration entry; an entry created under `salus` is **not automatically converted** to `salus_cloud_native`. Updating only the Python files is insufficient. To migrate safely:
 
@@ -37,7 +51,7 @@ For a fresh manual installation, copy the entire `custom_components/salus_cloud_
 4. Once the new entry works, remove **only the old Salusfy config entry** created under `salus` in **Settings → Devices & services**. If the `salus` folder belongs exclusively to the old Salusfy installation, remove or uninstall that *old copy* after backing it up. **Do not remove `custom_components/salus/` if it belongs to the unrelated `homeassistant_salus` integration.** Restart Home Assistant.
 5. Compare the old and new entity IDs in **Settings → Devices & services → Entities**; use the entity rename UI to restore desired names/IDs once old registrations have been removed. Update automations, scripts, dashboards, notifications and statistics consumers that reference changed entity IDs. Do not edit `.storage` or rename a domain in configuration records manually.
 
-The code retains the old device-specific unique-ID strings for compatibility where possible (e.g. `Salus Thermostat_climate` and device ID based sensor IDs), **but they are scoped to the new integration platform and a new config entry**. Home Assistant may assign different entity IDs (such as `_2` suffixes) or create separate device-registry entries. Automatically preserving previous entity IDs, entity history, dashboard bindings and statistics is **not guaranteed**. See [detailed migration steps](HOW_TO_MANUAL_INSTALL.md#existing-salus-to-salus_cloud_native-migration).
+The code retains the old device-specific unique-ID strings for compatibility where possible (e.g. `Salus Thermostat_climate` and device ID based sensor IDs), **but they are scoped to the new integration platform and a new config entry**. Home Assistant may assign different entity IDs (such as `_2` suffixes) or create separate device-registry entries. Automatically preserving previous entity IDs, entity history, dashboard bindings and statistics is **not guaranteed**. See [detailed migration steps](HOW_TO_MANUAL_INSTALL.md#3-existing-salus-to-salus_cloud_native-migration).
 
 ## Native device page and battery status
 

@@ -1,16 +1,25 @@
 # Salusfy v1.2.4 — Manual installation / domain migration
 
-This guide covers **Salusfy v1.2.4**, retaining v1.2.3 controls but changing its integration domain to avoid another HACS integration. The change requires explicit reconfiguration for previous `salus` installations. Download the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest); the default HACS catalog listing is still pending review of [PR #12460](https://github.com/hacs/default/pull/12460).
+This guide covers **Salusfy v1.2.4**, which retains the v1.2.3 controls and moves the integration to `salus_cloud_native` to avoid a domain collision. Existing `salus` installations require manual migration.
+
+## HACS installation (recommended)
+
+If you're upgrading from the legacy `salus` domain, [back up your installation](#1-back-up-your-installation) before downloading the update.
+
+1. Open **HACS** in Home Assistant and search the default catalog for **Salus Cloud Native**.
+2. Open the listing and select **Download** for a new installation. To upgrade an existing installation, apply the update through HACS.
+3. Restart Home Assistant. For a fresh installation, [configure the integration](#configure-in-home-assistant). For an upgrade from `salus`, continue with the [migration steps](#3-existing-salus-to-salus_cloud_native-migration).
 
 ## 1. Back up your installation
 
 1. Make a full backup under **Settings → System → Backups**.
 2. Record your current Salusfy `salus` config-entry devices, entity IDs, custom names, dashboards, automations and statistics consumers; preserve a copy of the old folder if it is owned by Salusfy.
-3. Download the [v1.2.4 release](https://github.com/Kosztyk/salusfy/releases/tag/v1.2.4). **Do not use the standalone v1.2.2 ZIP** for this migration: it installs the conflicting legacy `salus` folder.
 
 ## 2. Install the new domain
 
-The package to install is **`custom_components/salus_cloud_native/`**. In Home Assistant the destination must be:
+For a manual installation, download the source ZIP from the [latest GitHub release](https://github.com/Kosztyk/salusfy/releases/latest). Use v1.2.4 or later for this migration. The standalone v1.2.2 ZIP installs the legacy `salus` folder.
+
+Extract the ZIP and copy the entire `custom_components/salus_cloud_native/` directory directly into `/config/custom_components/`. Verify the resulting path before restarting Home Assistant:
 
 ```text
 /config/custom_components/salus_cloud_native/
@@ -24,22 +33,24 @@ The package to install is **`custom_components/salus_cloud_native/`**. In Home A
     ...
 ```
 
-Either update this repository through HACS (custom repository until approved) or extract its GitHub release source ZIP and copy the entire `custom_components/salus_cloud_native` directory to `/config/custom_components/`. **Do not** nest `custom_components` inside itself. Restart Home Assistant to load the new Python package.
+Restart Home Assistant to load the new integration.
+
+### Configure in Home Assistant
+
+For a fresh installation, go to **Settings → Devices & services → Add integration** and add one **Salus Cloud Native** entry per cloud device.
 
 ## 3. Existing `salus` to `salus_cloud_native` migration
 
 Changing an integration's domain is a breaking configuration change: Home Assistant does not automatically rewrite existing `salus` entries. The existing `custom_components/salus` directory also collides with the independently published `homeassistant_salus` integration.
 
 1. Before making changes, keep your Home Assistant backup. Note the existing entity IDs and the dashboards, automations and long-term statistics that rely on them.
-2. Install `salus_cloud_native` as above and restart Home Assistant.
+2. If you still need to install the new version, follow the [HACS](#hacs-installation-recommended) or [manual installation](#2-install-the-new-domain) steps.
 3. Go to **Settings → Devices & services → Add integration → Salus Cloud Native**. Enter the same SALUS mobile-cloud credentials and choose the same physical device; repeat for each device/account previously configured.
 4. Verify the new climate, sensor, binary sensor, hot-water controls (where supported) and device grouping. Do not run both sets of thermostat-control automations simultaneously.
 5. Delete the **old Salusfy `salus` config entry** from Devices & services after confirming the new entry works. Remove only an old `salus` integration folder known to belong to Salusfy. **Never delete another integration's `custom_components/salus` folder.** Restart Home Assistant.
 6. Review/rename the new entity IDs after the old IDs are freed, then update dashboard cards, scripts, automation actions, history/recorder queries and energy/statistics references as needed.
 
 **ID compatibility:** the code retains the device's cloud ID and the existing `unique_id` string formulas; however, the platform/integration domain and config entry are new. The device registry identifiers change from `("salus", device_id)` to `("salus_cloud_native", device_id)`, so Home Assistant creates a distinct device registry identity. The generated entity IDs can acquire `_2` suffixes while old entities remain. Previous entity ID assignments and historical statistics are not automatically migrated. Do **not** edit `.storage/core.config_entries` or `.storage/core.entity_registry` manually.
-
-For entirely new installations, just install the new folder, restart Home Assistant, and add **Salus Cloud Native** once per cloud device.
 
 ## 4. What you should see
 
